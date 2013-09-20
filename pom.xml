@@ -276,14 +276,8 @@
 			</dependency>
 			<dependency>
 				<groupId>org.geotools</groupId>
-				<artifactId>gt-epsg-hsql</artifactId>
+				<artifactId>gt-epsg-wkt</artifactId>
 				<version>${geotools.version}</version>
-				<exclusions>
-					<exclusion>
-						<groupId>hsqldb</groupId>
-						<artifactId>hsqldb</artifactId>
-					</exclusion>
-				</exclusions>
 				<scope>runtime</scope>
 			</dependency>
 			<dependency>
