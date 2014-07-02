@@ -1,40 +1,48 @@
-Copyright (C) 2013 52 North Initiative for Geospatial Open Source Software GmbH
+Copyright (C) 2007 - 2014 52°North Initiative for Geospatial Open Source
+Software GmbH
 
-Contact: Andreas Wytzisk
-52 North Initiative for Geospatial Open Source Software GmbH
-Martin-Luther-King-Weg 24
-48155 Muenster, Germany
-info@52north.org
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License version 2 as published
+by the Free Software Foundation.
 
-This program is free software; you can redistribute and/or modify it under 
-the terms of the GNU General Public License version 2 as published by the 
-Free Software Foundation.
+If the program is linked with libraries which are licensed under one of
+the following licenses, the combination of the program with the linked
+library is not considered a "derivative work" of the program:
 
-This program is distributed WITHOUT ANY WARRANTY; even without the implied
-WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-General Public License for more details.
+      • Apache License, version 2.0
+      • Apache Software License, version 1.0
+      • GNU Lesser General Public License, version 3
+      • Mozilla Public License, versions 1.0, 1.1 and 2.0
+      • Common Development and Distribution License (CDDL), version 1.0
 
-You should have received a copy of the GNU General Public License along with
-this program (see gnu-gpl v2.txt). If not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
-visit the Free Software Foundation web page, http://www.fsf.org.
+Therefore the distribution of the program linked with libraries licensed
+under the aforementioned licenses, is permitted by the copyright holders
+if the distribution is compliant with both the GNU General Public
+License version 2 and the aforementioned licenses.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+Public License for more details.
 
 This project includes:
   52n-security-licensing under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   52n-wps-ags-workspace under GNU GENERAL PUBLIC LICENSE (GPL Version 2, June 1991)
   52n-WPS-Config under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
-  52North Algorithm Implementations under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   52North Moving Code Runtime under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   52North Web Admin Interface under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   52North Web Processing Service under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
-  52North WPS Algorithm API under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
+  52North WPS Algorithm API under Apache License, Version 2.0
+  52North WPS Algorithm Implementations under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   52North WPS ArcGIS Server Processing Backend under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   52North WPS Client Library under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
-  52North WPS Commons under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
+  52North WPS Commons under Apache License, Version 2.0
   52North WPS Database under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
+  52North WPS Geotools Algorithm Implementations under GNU GENERAL PUBLIC LICENSE Version 2, June 1991 (with Exceptions to EPL Libraries)
+  52North WPS Geotools Input/Ouput Implementation under GNU GENERAL PUBLIC LICENSE Version 2, June 1991 (with Exceptions to EPL Libraries)
   52North WPS GRASS Processing Backend under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   52North WPS Input/Ouput Implementation under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
-  52North WPS Input/Output API under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
+  52North WPS Input/Output API under Apache License, Version 2.0
   52North WPS Moving Code Processing Backend under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   52North WPS Python Processing Backend under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   52North WPS R Processing Backend under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
@@ -47,8 +55,8 @@ This project includes:
   Activation 1.1 under The Apache Software License, Version 2.0
   ant-launcher under The Apache Software License, Version 2.0
   AOP alliance under Public Domain
+  Apache Axis 1.4 under The Apache Software License, Version 2.0
   Apache Axis JAXRPC 1.4 under The Apache Software License, Version 2.0
-  Apache Axis SAAJ 1.4 under The Apache Software License, Version 2.0
   Apache Axis2 - Kernel under The Apache Software License, Version 2.0
   Apache Axis2 - Root under The Apache Software License, Version 2.0
   Apache Axis2 - SAAJ under The Apache Software License, Version 2.0
@@ -61,7 +69,6 @@ This project includes:
   Axiom API under The Apache Software License, Version 2.0
   Axiom DOM under The Apache Software License, Version 2.0
   Axiom Impl under The Apache Software License, Version 2.0
-  Axis Web Services under The Apache Software License, Version 2.0
   axis-wsdl4j under The Apache Software License, Version 2.0
   bcprov-jdk15 under Bouncycastle license, http://www.bouncycastle.org/licence.html (MIT-style license)
   BeanShell under GNU LESSER GENERAL PUBLIC LICENSE
@@ -78,10 +85,10 @@ This project includes:
   config under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   Content Repository for Java Technology API under Day Specification License or Day Specification License addendum
   core under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
+  CORS Filter under The Apache Software License, Version 2.0
   DataStore Support under Lesser General Public License (LGPL)
   decision under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
   Derby Engine under The Apache Software License, Version 2.0
-  Discovery under The Apache Software License, Version 2.0
   dom4j under DOM4J license, http://dom4j.sourceforge.net/dom4j-1.6.1/license.html (BSD style)
   Dough Lea's util.concurrent package under Public domain, Sun Microsoystems
   ecore under Eclipse Public License (EPL)
@@ -112,9 +119,10 @@ This project includes:
   HttpClient under Apache License
   HttpCore under Apache License
   ibatis-sqlmap under The Apache Software License, Version 2.0
-  Image I/O-Extensions - Custom Streams under Lesser General Public License (LGPL)
-  Image I/O-Extensions - utilities classes and methods under Lesser General Public License (LGPL)
-  Improved TIFF Plugin under Lesser General Public License (LGPL)
+  Image I/O-Extensions - Custom Streams under GNU Lesser General Public License, version 3 or later (LGPL)
+  Image I/O-Extensions - Improved TIFF Plugin under BSD License
+  Image I/O-Extensions - Pure java ArcGrid Plugin under GNU Lesser General Public License, version 3 or later (LGPL)
+  Image I/O-Extensions - utilities classes and methods under GNU Lesser General Public License, version 3 or later (LGPL)
   Jackrabbit API under The Apache Software License, Version 2.0
   Jackrabbit Core under The Apache Software License, Version 2.0
   Jackrabbit JCR Commons under The Apache Software License, Version 2.0
@@ -122,8 +130,9 @@ This project includes:
   Jackrabbit SPI Commons under The Apache Software License, Version 2.0
   Jackrabbit Text Extractors under The Apache Software License, Version 2.0
   jai_codec under Java Advanced Imaging Distribution License, http://download.java.net/media/jai/builds/release/1_1_3/LICENSE-jai.txt
-  jai_core under Java Advanced Imaging Distribution License, http://download.java.net/media/jai/builds/release/1_1_3/LICENSE-jai.txt
   jai_imageio under Java Advanced Imaging Distribution License, http://download.java.net/media/jai/builds/release/1_1_3/LICENSE-jai.txt
+  Java Advanced Imaging under Java Advanced Imaging Distribution License, http://download.java.net/media/jai/builds/release/1_1_3/LICENSE-jai.txt
+  Java Property Utility under The Apache Software License, Version 2.0
   Java UUID Generator under The Apache Software License, Version 2.0 or GNU Lesser General Public License v2.1
   JavaBeans Activation Framework (JAF) under Common Development and Distribution License (CDDL) v1.0
   JavaMail 1.4 under The Apache Software License, Version 2.0
@@ -134,7 +143,7 @@ This project includes:
   jdom under JDOM license, https://github.com/hunterhacker/jdom/blob/master/LICENSE.txt
   jep under GNU General Public License, version 2
   jfreechart under GNU Lesser General Public Licence
-  jgridshift under GNU Lesser General Public License, version 2.0 (LGPLv2)
+  jGridShift under GNU Lesser General Public License, version 2.0 (LGPLv2)
   jMock 2 Core under BSD style
   jMock JUnit 4 Extension under BSD style
   Joda time under Apache 2
@@ -142,6 +151,7 @@ This project includes:
   JSON.simple under The Apache Software License, Version 2.0
   jsp-api under GNU GENERAL PUBLIC LICENSE (GPL Version 2, June 1991)
   jsr-275 under BSD License
+  jstl under GNU GENERAL PUBLIC LICENSE (GPL Version 2, June 1991)
   JTA 1.1 under The Apache Software License, Version 2.0
   JTS Topology Suite under Lesser General Public License (LGPL)
   JUL to SLF4J bridge under MIT License
@@ -172,7 +182,6 @@ This project includes:
   PicoContainer Core under BSD License
   PJL Compressing Filter under Apache Software License V2.0
   precondition under GNU GENERAL PUBLIC LICENSE Version 2, June 1991
-  Pure java ArcGrid Plugin under Lesser General Public License (LGPL)
   Referencing services under Lesser General Public License (LGPL)
   REngine under GNU General Public License, version 2
   RserveEngine under GNU General Public License, version 2

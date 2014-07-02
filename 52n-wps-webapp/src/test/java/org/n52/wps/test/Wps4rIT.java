@@ -1,25 +1,30 @@
 /**
- * ﻿Copyright (C) 2007
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2007 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
 
 package org.n52.wps.test;
@@ -31,12 +36,16 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.IOException;
+import java.io.StringWriter;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Random;
+import java.util.UUID;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
 import org.junit.AfterClass;
@@ -49,7 +58,8 @@ import org.xml.sax.SAXException;
 
 /**
  * 
- * To run this integration tests there has to be RServe running on the localhost and the R repository must be enabled in the WPS config.
+ * To run this integration tests there has to be RServe running on the localhost and the R repository must be
+ * enabled in the WPS config.
  * 
  * To start RServe:
  * 
@@ -108,10 +118,13 @@ public class Wps4rIT {
         return con;
     }
 
-    @Test
+    /*
+     * DN: test disabled, sessionInfo.jsp was deleted, service endpoint must be implemented.
+     */
+    // @Test
     public void sessionInfoRetrievedFromWPSWebsite() throws MalformedURLException {
         String temp = wpsUrl.substring(0, wpsUrl.lastIndexOf("/"));
-        URL urlSessionInfo = new URL(temp + "/R/sessioninfo.jsp");
+        URL urlSessionInfo = new URL(temp + "/rsessioninfoendpoint");
         try {
             String response = GetClient.sendRequest(urlSessionInfo.toExternalForm());
             assertThat(response, containsString("R ")); // "R version" fails if using unstable R!
@@ -137,13 +150,21 @@ public class Wps4rIT {
         String response = PostClient.sendRequest(wpsUrl, payload);
 
         assertThat(AllTestsIT.parseXML(response), is(not(nullValue())));
-        assertThat(response, not(containsString("ExceptionReport")));
-        assertThat(response, containsString("This is a dummy txt-file"));
-        assertThat(response, containsString("480"));
+        assertThat("response is not an exception", response, not(containsString("ExceptionReport")));
+        assertThat("text resource content could be read",
+                   response,
+                   containsString("dataType=\"xs:string\">This is a dummy txt-file"));
+        assertThat("image resource is loaded", response, containsString("480"));
+        assertThat("directories are created", response, containsString("xs:integer\">1</wps:LiteralData>"));
+        assertThat("subdirectory resources can be read", response, containsString("xs:double\">42.0</wps:LiteralData>"));
+        assertThat("subsubdirectory resources can be read",
+                   response,
+                   containsString("xs:integer\">17</wps:LiteralData>"));
+        assertThat("recursive folders all exist", response, containsString("xs:integer\">3</wps:LiteralData>"));
     }
 
     @Test
-    public void responseContainsVersionSection() throws IOException,
+    public void responseContainsSessionInfo() throws IOException,
             ParserConfigurationException,
             SAXException,
             XmlException {
@@ -155,7 +176,11 @@ public class Wps4rIT {
 
         assertThat(AllTestsIT.parseXML(response), is(not(nullValue())));
         assertThat(response, not(containsString("ExceptionReport")));
-        assertThat(response, containsString("R version "));
+        assertThat(response, containsString("attached base packages:"));
+        assertThat(response, containsString("locale:"));
+        assertThat(response, containsString("<wps:ComplexData encoding=\"UTF-8\" mimeType=\"text/plain\">"));
+        assertThat(response, containsString("methods"));
+        assertThat(response, containsString("base"));
     }
 
     @Test
@@ -170,7 +195,10 @@ public class Wps4rIT {
         String response = PostClient.sendRequest(wpsUrl, payload);
 
         assertThat(AllTestsIT.parseXML(response), is(not(nullValue())));
-        assertThat(response, containsString("warnings"));
+        assertThat(response, containsString("<ows:Identifier>warnings</ows:Identifier>"));
+        assertThat(response, containsString("mimeType=\"text/plain\">warning"));
+        assertThat(response, containsString("Test warning 1"));
+        assertThat(response, containsString("Test warning 4: This is the LAST warning"));
     }
 
     @Test
@@ -186,21 +214,19 @@ public class Wps4rIT {
         String response = PostClient.sendRequest(wpsUrl, payload);
 
         assertThat(AllTestsIT.parseXML(response), is(not(nullValue())));
-        assertThat(response, containsString("Test warning 4: This is a warning with some text."));
+        assertThat(response, containsString("This is the LAST warning."));
     }
 
     @Test
     public void decribeProcess() throws IOException, ParserConfigurationException, SAXException {
-        String identifier = "org.n52.wps.server.r.test_resources";
+        String identifier = "org.n52.wps.server.r.test.resources";
         String response = GetClient.sendRequest(wpsUrl, "Service=WPS&Request=DescribeProcess&Version=1.0.0&Identifier="
                 + identifier);
 
         assertThat(AllTestsIT.parseXML(response), is(not(nullValue())));
         assertThat(response, not(containsString("ExceptionReport")));
         assertThat(response, containsString(identifier));
-
-        // TODO fix test: assertThat(response, containsString("<ows:Identifier>" + identifier +
-        // "</ows:Identifier>"));
+        assertThat(response, containsString("<ows:Identifier>" + identifier + "</ows:Identifier>"));
     }
 
     @Test
@@ -209,7 +235,9 @@ public class Wps4rIT {
 
         assertThat(AllTestsIT.parseXML(response), is(not(nullValue())));
         assertThat(response, not(containsString("ExceptionReport")));
-        assertThat(response, containsString("org.n52.wps.server.r.test_resources"));
+        assertThat(response, containsString("org.n52.wps.server.r.test.resources"));
+        assertThat(response, containsString("org.n52.wps.server.r.test.calculator"));
+        assertThat(response, containsString("org.n52.wps.server.r.test.image"));
     }
 
     @Test
@@ -217,26 +245,11 @@ public class Wps4rIT {
         URL resource = Wps4rIT.class.getResource("/R/ExecuteTestImage.xml");
         XmlObject xmlPayload = XmlObject.Factory.parse(resource);
         String payload = xmlPayload.toString();
+        payload = payload.replace("@@@size@@@", "420");
 
         String response = PostClient.sendRequest(wpsUrl, payload);
         assertThat(response.split("\n", 1)[0], containsString("PNG"));
         assertThat(response, response, not(containsString("ExceptionReport")));
-    }
-
-    @Test
-    public void uniformIsExecuted() throws IOException, XmlException {
-        URL resource = Wps4rIT.class.getResource("/R/ExecuteTestUniform.xml");
-        XmlObject xmlPayload = XmlObject.Factory.parse(resource);
-        String payload = xmlPayload.toString();
-
-        String response = PostClient.sendRequest(wpsUrl, payload);
-        assertThat(response, response, containsString("Process successful"));
-        // output-specific:
-        assertThat(response, containsString("\"x\""));
-        assertThat(response, containsString("\"1\""));
-        assertThat(response, containsString("\"2\""));
-        assertThat(response, containsString("\"3\""));
-        assertThat(response, not(containsString("ExceptionReport")));
     }
 
     @Test
@@ -265,90 +278,156 @@ public class Wps4rIT {
         String response = PostClient.sendRequest(wpsUrl, payload);
 
         assertThat(AllTestsIT.parseXML(response), is(not(nullValue())));
-        assertThat(response, containsString(Integer.toString(result)));
+        String expected = "dataType=\"xs:double\">" + Integer.toString(result) + ".0";
+        assertThat(response, containsString(expected));
     }
 
-    // TODO add unit test for wps.off and wps.on annotations using a test script that contains various on/off
-    // statements.
+    @Test
+    public void wpsOffAnnotationWorks() throws XmlException, IOException {
+        URL resource = Wps4rIT.class.getResource("/R/ExecuteTestWpsOff.xml");
+        XmlObject xmlPayload = XmlObject.Factory.parse(resource);
+        String payload = xmlPayload.toString();
+        String response = PostClient.sendRequest(wpsUrl, payload);
 
-    // /*Complex XML Input by reference */
-    // @Test
-    // public void testExecutePOSTreferenceComplexXMLSynchronousXMLOutput()
-    // throws IOException, ParserConfigurationException, SAXException {
-    // System.out.println("\nRunning testExecutePOSTreferenceComplexXMLSynchronousXMLOutput");
-    // String payload =
-    // "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-    // +
-    // "<wps:Execute service=\"WPS\" version=\"1.0.0\" xmlns:wps=\"http://www.opengis.net/wps/1.0.0\" xmlns:ows=\"http://www.opengis.net/ows/1.1\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/wps/1.0.0"
-    // + "http://schemas.opengis.net/wps/1.0.0/wpsExecute_request.xsd\">"
-    // +
-    // "<ows:Identifier>org.n52.wps.server.algorithm.SimpleBufferAlgorithm</ows:Identifier>"
-    // + "<wps:DataInputs>"
-    // + "<wps:Input>"
-    // + "<ows:Identifier>data</ows:Identifier>"
-    // +
-    // "<wps:Reference schema=\"http://schemas.opengis.net/gml/2.1.2/feature.xsd\" xlink:href=\"http://geoprocessing.demo.52north.org:8080/geoserver/ows?service=WFS&amp;version=1.0.0&amp;request=GetFeature&amp;typeName=topp:tasmania_roads\"/>"
-    // + "</wps:Input>"
-    // + "<wps:Input>"
-    // + "<ows:Identifier>width</ows:Identifier>"
-    // +
-    // "<ows:Title>Distance which people will walk to get to a playground.</ows:Title>"
-    // + "<wps:Data>"
-    // + "<wps:LiteralData>20</wps:LiteralData>"
-    // + "</wps:Data>"
-    // + "</wps:Input>"
-    // + "</wps:DataInputs>"
-    // + "<wps:ResponseForm>"
-    // + "<wps:ResponseDocument>"
-    // + "<wps:Output>"
-    // + "<ows:Identifier>result</ows:Identifier>"
-    // + "</wps:Output>"
-    // + "</wps:ResponseDocument>"
-    // + "</wps:ResponseForm>"
-    // + "</wps:Execute>";
-    // String response = PostClient.sendRequest(url, payload);
-    //
-    // assertThat(AllTestsIT.parseXML(response), is(not(nullValue())));
-    // assertThat(response, response, not(containsString("ExceptionReport")));
-    // assertThat(response, response, containsString("LinearRing"));
-    // }
-    //
-    // /*Complex binary Input by value */
-    // // Disabled test due to heap size issues.
-    // @Test
-    // public void testExecutePOSTValueComplexBinarySynchronousBinaryOutput()
-    // throws IOException, ParserConfigurationException, SAXException {
-    // System.out.println("\nRunning testExecutePOSTValueComplexBinarySynchronousBinaryOutput");
-    // String payload =
-    // "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-    // +
-    // "<wps:Execute service=\"WPS\" version=\"1.0.0\" xmlns:wps=\"http://www.opengis.net/wps/1.0.0\" xmlns:ows=\"http://www.opengis.net/ows/1.1\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/wps/1.0.0"
-    // + "http://schemas.opengis.net/wps/1.0.0/wpsExecute_request.xsd\">"
-    // +
-    // "<ows:Identifier>org.n52.wps.server.algorithm.raster.AddRasterValues</ows:Identifier>"
-    // + "<wps:DataInputs>"
-    // + "<wps:Input>"
-    // + "<ows:Identifier>dataset1</ows:Identifier>"
-    // +
-    // "<wps:Reference mimeType=\"image/tiff\" xlink:href=\"http://52north.org/files/geoprocessing/Testdata/elev_srtm_30m.tif\">"
-    // + "</wps:Reference>"
-    // + "</wps:Input>"
-    // + "<wps:Input>"
-    // + "<ows:Identifier>dataset2</ows:Identifier>"
-    // +
-    // "<wps:Reference mimeType=\"image/tiff\" xlink:href=\"http://52north.org/files/geoprocessing/Testdata/elev_srtm_30m.tif\">"
-    // + "</wps:Reference>"
-    // + "</wps:Input>"
-    // + "</wps:DataInputs>"
-    // + "<wps:ResponseForm>"
-    // + "<wps:ResponseDocument status=\"true\" storeExecuteResponse=\"true\">"
-    // + "<wps:Output encoding=\"base64\" >"
-    // + "<ows:Identifier>result</ows:Identifier>"
-    // + "</wps:Output>"
-    // + "</wps:ResponseDocument>"
-    // + "</wps:ResponseForm>"
-    // + "</wps:Execute>";
-    // String response = PostClient.sendRequest(url, payload);
-    // AllTestsIT.validateBinaryBase64Async(response);
-    // }
+        String expected = "<wps:LiteralData dataType=\"xs:integer\">42</wps:LiteralData>";
+        assertThat("Returned value is sum of provided ones, not sum of values defined in deactivated code.",
+                   response,
+                   containsString(expected));
+    }
+
+    @Test
+    public void defaultValuesAreLoaded() throws XmlException, IOException {
+        URL resource = Wps4rIT.class.getResource("/R/ExecuteTestDefaults.xml");
+        XmlObject xmlPayload = XmlObject.Factory.parse(resource);
+        String payload = xmlPayload.toString();
+        String response = PostClient.sendRequest(wpsUrl, payload);
+
+        String expected = "<wps:LiteralData dataType=\"xs:integer\">42</wps:LiteralData>";
+        assertThat("Returned value is sum of defaults, not sum of values defined in deactivated code.",
+                   response,
+                   containsString(expected));
+    }
+
+    @Test
+    public void exceptionsOnIllegalInputs() throws XmlException, IOException {
+        String[] illegalCommands = new String[] {
+        // "\\x0022;", // FIXME Rserve can be crashed with this
+        // "\u0071\u0075\u0069\u0074\u0028\u0029",
+        // "<-", "a<-q", // result in WPS parsing error
+        "="};
+
+        URL resource = Wps4rIT.class.getResource("/R/ExecuteTestEcho.xml");
+        XmlObject xmlPayload = XmlObject.Factory.parse(resource);
+
+        for (String cmd : illegalCommands) {
+            String payload = xmlPayload.toString();
+            payload = payload.replace("@@@data@@@", cmd);
+
+            String response = PostClient.sendRequest(wpsUrl, payload);
+
+            String expected = "illegal input";
+            assertThat("Response is an exception", response, containsString("ExceptionReport"));
+            assertThat("Response contains the keyphrase '" + expected + "'", response, containsString(expected));
+            assertThat("Response contains the illegal input", response, containsString(cmd));
+        }
+    }
+
+    @Test
+    public void syntaxErrorOnIllegalInputs() throws XmlException, IOException {
+        String[] illegalCommands = new String[] {"\"\";quit(\"no\");", "setwd('/root/')", "setwd(\"c:/\")"};
+
+        URL resource = Wps4rIT.class.getResource("/R/ExecuteTestEcho.xml");
+        XmlObject xmlPayload = XmlObject.Factory.parse(resource);
+
+        for (String cmd : illegalCommands) {
+            String payload = xmlPayload.toString();
+            payload = payload.replace("@@@data@@@", cmd);
+
+            String response = PostClient.sendRequest(wpsUrl, payload);
+
+            assertThat("Response is an exception", response, containsString("ExceptionReport"));
+            String expected = "eval failed";
+            assertThat("Response contains '" + expected + "'", response, containsString(expected));
+        }
+    }
+
+    @Test
+    public void replacementsOnIllegalInputs() throws XmlException, IOException {
+        String[] illegalCommands = new String[] {"unlink(getwd())", "q();", "quit()", "%lt;-",
+                                                 // "system('format hardisk')",
+                                                 "quit(\\\"no\\\");inputVariable;"};
+
+        URL resource = Wps4rIT.class.getResource("/R/ExecuteTestEcho.xml");
+        XmlObject xmlPayload = XmlObject.Factory.parse(resource);
+
+        for (String cmd : illegalCommands) {
+            String payload = xmlPayload.toString();
+            payload = payload.replace("@@@data@@@", cmd);
+
+            String response = PostClient.sendRequest(wpsUrl, payload);
+
+            assertThat("Response is not an exception", response, not(containsString("ExceptionReport")));
+            // assertThat("Response contains an echo of '" + cmd + "'", response, containsString(cmd));
+        }
+    }
+
+    @Test
+    public void renamingDoesNotAffectScript() throws XmlException, IOException {
+        URL resource = Wps4rIT.class.getResource("/R/ExecuteTestEcho.xml");
+        XmlObject xmlPayload = XmlObject.Factory.parse(resource);
+
+        String data = UUID.randomUUID().toString();
+        String payload = xmlPayload.toString();
+        payload = payload.replace("@@@data@@@", data);
+
+        String response = PostClient.sendRequest(wpsUrl, payload);
+
+        assertThat("Response is not an exception", response, not(containsString("ExceptionReport")));
+        assertThat("Response contains an echo of '" + data + "'", response, containsString(data));
+    }
+
+    @Test
+    public void csvResponseInlineWorks() throws XmlException, IOException {
+        URL resource = Wps4rIT.class.getResource("/R/ExecuteTestCSV.xml");
+        XmlObject xmlPayload = XmlObject.Factory.parse(resource);
+
+        String payload = xmlPayload.toString();
+        payload = payload.replace("@@@ref@@@", Boolean.toString(false));
+        String response = PostClient.sendRequest(wpsUrl, payload);
+
+        assertThat("Response is not an exception", response, not(containsString("ExceptionReport")));
+        assertThat("Response contains mime type", response, containsString("mimeType=\"text/csv\""));
+
+        assertThat("Response contains test data names",
+                   response,
+                   containsString("\"cadmium\",\"copper\",\"lead\",\"zinc\""));
+    }
+
+    @Test
+    public void csvResponseReferenceWorks() throws XmlException, IOException {
+        URL resource = Wps4rIT.class.getResource("/R/ExecuteTestCSV.xml");
+        XmlObject xmlPayload = XmlObject.Factory.parse(resource);
+
+        String payload = xmlPayload.toString();
+        payload = payload.replace("@@@ref@@@", Boolean.toString(true));
+        String response = PostClient.sendRequest(wpsUrl, payload);
+
+        assertThat("Response is not an exception", response, not(containsString("ExceptionReport")));
+        assertThat("Response contains mime type", response, containsString("mimeType=\"text/csv\""));
+
+        String urlString = response.substring(response.indexOf("http", response.indexOf("text/csv")));
+        urlString = urlString.substring(0, urlString.indexOf("\""));
+        URL url = new URL(urlString);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.connect();
+        String contentType = connection.getContentType();
+        assertThat("Response content type is correct", contentType, is("text/csv"));
+
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(connection.getInputStream(), writer);
+        String csv = writer.toString();
+
+        assertThat("CSV file contains test data names", csv, containsString("\"cadmium\",\"copper\",\"lead\",\"zinc\""));
+    }
+
 }

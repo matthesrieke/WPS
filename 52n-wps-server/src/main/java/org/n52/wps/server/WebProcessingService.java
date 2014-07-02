@@ -1,28 +1,31 @@
 /**
- * ﻿Copyright (C) 2007
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2007 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
-
-
 package org.n52.wps.server;
 
 // FvK: added Property Change Listener support
@@ -30,6 +33,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
@@ -37,7 +41,6 @@ import java.net.URLDecoder;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
-import javax.media.jai.JAI;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -58,9 +61,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This WPS supports HTTP GET for describeProcess and getCapabilities and XML-POST for execute.
- * 
+ *
  * @author foerster
- * 
+ *
  */
 public class WebProcessingService extends HttpServlet {
 
@@ -76,9 +79,9 @@ public class WebProcessingService extends HttpServlet {
     protected static Logger LOGGER = LoggerFactory.getLogger(WebProcessingService.class);
 
     /**
-     * 
+     *
      * Returns a preconfigured OutputStream It takes care of: - caching - content-Encoding
-     * 
+     *
      * @param hsRequest
      *        the HttpServletRequest
      * @param hsResponse
@@ -92,10 +95,11 @@ public class WebProcessingService extends HttpServlet {
          * Forbids clients to cache the response May solve problems with proxies and bad implementations
          */
         hsResponse.setHeader("Expires", "0");
-        if (hsRequest.getProtocol().equals("HTTP/1.1"))
+        if (hsRequest.getProtocol().equals("HTTP/1.1")) {
             hsResponse.setHeader("Cache-Control", "no-cache");
-        else if (hsRequest.getProtocol().equals("HTTP/1.0"))
+        } else if (hsRequest.getProtocol().equals("HTTP/1.0")) {
             hsResponse.setHeader("Pragma", "no-cache");
+        }
 
         // Enable/disable gzip compression
         if (hsRequest.getHeader("Accept-Encoding") != null
@@ -109,10 +113,10 @@ public class WebProcessingService extends HttpServlet {
         // }
     }
 
+    @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-
-        JAI.getDefaultInstance().getTileCache().setMemoryCapacity(256 * 1024 * 1024L);
+        
         // this is important to set the lon lat support for correct CRS transformation.
         // TODO: Might be changed to an additional configuration parameter.
         System.setProperty("org.geotools.referencing.forceXY", "true");
@@ -155,8 +159,8 @@ public class WebProcessingService extends HttpServlet {
         LOGGER.info("webappPath is set to: " + customWebappPath);
 
         try {
-            CapabilitiesConfiguration.getInstance(BASE_DIR + System.getProperty("file.separator") + "config"
-                    + System.getProperty("file.separator") + "wpsCapabilitiesSkeleton.xml");
+            CapabilitiesConfiguration.getInstance(BASE_DIR + File.separator + "config"
+                    + File.separator + "wpsCapabilitiesSkeleton.xml");
         }
         catch (IOException e) {
             LOGGER.error("error while initializing capabilitiesConfiguration", e);
@@ -175,6 +179,7 @@ public class WebProcessingService extends HttpServlet {
         // it will listen to changes of the wpsCapabilities
         WPSConfig.getInstance().addPropertyChangeListener(org.n52.wps.commons.WPSConfig.WPSCAPABILITIES_SKELETON_PROPERTY_EVENT_NAME,
                                                           new PropertyChangeListener() {
+                                                              @Override
                                                               public void propertyChange(final PropertyChangeEvent propertyChangeEvent) {
                                                                   LOGGER.info(this.getClass().getName()
                                                                           + ": Received Property Change Event: "
@@ -232,8 +237,16 @@ public class WebProcessingService extends HttpServlet {
         catch (ExceptionReport e) {
             handleException(e, res);
         }
+        catch (Exception e) {
+            ExceptionReport er = new ExceptionReport("Error handing request: " + e.getMessage(),
+                                                     ExceptionReport.NO_APPLICABLE_CODE,
+                                                     e);
+            handleException(er, res);
+        }
         finally {
-            res.flushBuffer();
+            if (res != null) {
+                res.flushBuffer();
+            }
             // out.flush();
             // out.close();
         }
@@ -319,11 +332,13 @@ public class WebProcessingService extends HttpServlet {
             handleException(er, res);
         }
         finally {
-            if (res != null)
+            if (res != null) {
                 res.flushBuffer();
+            }
 
-            if (reader != null)
+            if (reader != null) {
                 reader.close();
+            }
         }
     }
 
@@ -340,7 +355,7 @@ public class WebProcessingService extends HttpServlet {
         try {
             LOGGER.debug(exception.toString());
             // DO NOT MIX getWriter and getOuputStream!
-            exception.getExceptionDocument().save(res.getOutputStream(), 
+            exception.getExceptionDocument().save(res.getOutputStream(),
                                                   XMLBeansHelper.getXmlOptions());
 
             res.setStatus(HttpServletResponse.SC_OK);

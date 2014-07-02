@@ -1,27 +1,19 @@
 /**
- * ﻿Copyright (C) 2006
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2006 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package org.n52.wps.commons;
 
 import java.beans.PropertyChangeListener;
@@ -36,10 +28,17 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.List;
 
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.servlet.ServletConfig;
 
 import org.apache.xmlbeans.XmlException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.n52.wps.FormatDocument.Format;
 import org.n52.wps.GeneratorDocument.Generator;
 import org.n52.wps.ParserDocument.Parser;
@@ -47,30 +46,34 @@ import org.n52.wps.PropertyDocument.Property;
 import org.n52.wps.RepositoryDocument.Repository;
 import org.n52.wps.WPSConfigurationDocument;
 import org.n52.wps.impl.WPSConfigurationDocumentImpl.WPSConfigurationImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 
 public class WPSConfig implements Serializable {
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 3198223084611936675L;
     private static transient WPSConfig wpsConfig;
     private static transient WPSConfigurationImpl wpsConfigXMLBeans;
 
-    private static transient Logger LOGGER = LoggerFactory.getLogger(WPSConfig.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(WPSConfig.class);
 
-    // FvK: added Property Change support
-    protected final PropertyChangeSupport propertyChangeSupport;
     // constants for the Property change event names
     public static final String WPSCONFIG_PROPERTY_EVENT_NAME = "WPSConfigUpdate";
     public static final String WPSCAPABILITIES_SKELETON_PROPERTY_EVENT_NAME = "WPSCapabilitiesUpdate";
-
+    public static final String CONFIG_FILE_PROPERTY = "wps.config.file";
     public static final String CONFIG_FILE_NAME = "wps_config.xml";
     private static final String CONFIG_FILE_DIR = "config";
     private static final String URL_DECODE_ENCODING = "UTF-8";
+    // FvK: added Property Change support
+    protected final PropertyChangeSupport propertyChangeSupport;
 
+    private static String configPath;
+    
     private WPSConfig(String wpsConfigPath) throws XmlException, IOException {
+    	configPath = wpsConfigPath;    	
         wpsConfigXMLBeans = (WPSConfigurationImpl) WPSConfigurationDocument.Factory.parse(new File(wpsConfigPath)).getWPSConfiguration();
 
         // FvK: added Property Change support
@@ -86,7 +89,7 @@ public class WPSConfig implements Serializable {
 
     /**
      * Add an Listener to the wpsConfig
-     * 
+     *
      * @param propertyName
      * @param listener
      */
@@ -96,7 +99,7 @@ public class WPSConfig implements Serializable {
 
     /**
      * remove a listener from the wpsConfig
-     * 
+     *
      * @param propertyName
      * @param listener
      */
@@ -112,7 +115,7 @@ public class WPSConfig implements Serializable {
     public void firePropertyChange(String event) {
     	propertyChangeSupport.firePropertyChange(event, null, null);
     }
-    
+
     // private synchronized static void writeObject(java.io.ObjectOutputStream oos) throws IOException {
     // oos.writeObject(wpsConfigXMLBeans.xmlText());
     // }
@@ -134,9 +137,8 @@ public class WPSConfig implements Serializable {
 
     /**
      * WPSConfig is a singleton. If there is a need for reinitialization, use this path.
-     * 
-     * @param configPathp
-     *        path to the wps_config.xml
+     *
+     * @param configPath path to the wps_config.xml
      * @throws XmlException
      * @throws IOException
      */
@@ -161,7 +163,7 @@ public class WPSConfig implements Serializable {
 
     /**
      * WPSConfig is a singleton. If there is a need for reinitialization, use this path.
-     * 
+     *
      * @param stream
      *        stream containing the wps_config.xml
      * @throws XmlException
@@ -190,7 +192,7 @@ public class WPSConfig implements Serializable {
     /**
      * returns an instance of the WPSConfig class. WPSConfig is a single. If there is need for
      * reinstantitation, use forceInitialization().
-     * 
+     *
      * @return WPSConfig object representing the wps_config.xml from the classpath or webapps folder
      */
     public static WPSConfig getInstance() {
@@ -209,18 +211,17 @@ public class WPSConfig implements Serializable {
     /**
      * returns an instance of the WPSConfig class. WPSCofnig is a single. If there is need for
      * reinstantitation, use forceInitialization().
-     * 
+     *
      * @param path
      *        path to the wps_config.xml
      * @return WPSConfig object representing the wps_config.xml from the given path
      */
     public static WPSConfig getInstance(String path) {
-        if (LOGGER.isDebugEnabled())
-            LOGGER.debug("Getting WPSConfig instance... from path: " + path);
-
+        LOGGER.debug("Getting WPSConfig instance... from path: {}", path);
         if (wpsConfig == null) {
             try {
                 wpsConfig = new WPSConfig(path);
+                configPath = path;
             }
             catch (XmlException e) {
                 LOGGER.error("Failed to initialize WPS. Reason: " + e.getMessage());
@@ -235,209 +236,50 @@ public class WPSConfig implements Serializable {
     }
 
     public static WPSConfig getInstance(ServletConfig config) {
-        if (LOGGER.isDebugEnabled())
-            LOGGER.debug("Getting WPSConfig instance... with ServletConfig: " + config.toString());
-
+        LOGGER.debug("Getting WPSConfig instance... with ServletConfig: {}", config.toString());
         String path = getConfigPath(config);
-
-        if (path == null)
-            path = getConfigPath();
-        else
-            LOGGER.debug("Found config file under " + path);
-
+        LOGGER.debug("Found config file under " + path);
         return getInstance(path);
     }
 
     public static String getConfigPath(ServletConfig config) {
-        return config.getServletContext().getRealPath(CONFIG_FILE_DIR + File.separator + CONFIG_FILE_NAME);
+        Optional<ServletConfig> servletConfig = Optional.fromNullable(config);
+        for (WPSConfigFileStrategy strategy : getWPSConfigFileStrategies()) {
+            Optional<File> file = strategy.find(servletConfig);
+            if (file.isPresent()) {
+                return file.get().getAbsolutePath();
+            }
+        }
+        throw new RuntimeException("Could not find and load wps_config.xml");
+    }
+
+    private static List<WPSConfigFileStrategy> getWPSConfigFileStrategies() {
+        return ImmutableList.of(new SystemPropertyStrategy(),
+                                new JNDIContextStrategy(),
+                                new HomeFolderStrategy(),
+                                new InitParameterStrategy(),
+                                new RelativeInitParameterStrategy(),
+                                new DefaultPathStrategy(),
+                                new ClassPathStrategy(),
+                                new WebAppTargetStrategy(),
+                                new WebAppSourceStrategy(),
+                                new WebAppPathStrategy(),
+                                new LastResortStrategy());
     }
 
     /**
      * This method retrieves the full path for the file (wps_config.xml), searching in WEB-INF/config. This is
      * only applicable for webapp applications. To customize this, please use directly
      * {@link WPSConfig#forceInitialization(String)} and then getInstance().
-     * 
+     *
      * @return
-     * @throws IOException
      */
-    public static String getConfigPath() {
-        String configPath = tryToGetPathFromClassPath();
-        File file = null;
-        if (configPath != null) {
-            file = new File(configPath);
-            if (file.exists()) {
-                return configPath;
-            }
-        }
-
-        configPath = tryToGetPathFromWebAppTarget();
-        if (configPath != null) {
-            file = new File(configPath);
-            if (configPath != null && file.exists()) {
-                return configPath;
-            }
-        }
-
-        configPath = tryToGetPathFromWebAppSource();
-        if (configPath != null) {
-            file = new File(configPath);
-            if (configPath != null && file.exists()) {
-                return configPath;
-            }
-        }
-
-        configPath = tryToGetPathViaWebAppPath();
-        if (configPath != null) {
-            file = new File(configPath);
-            if (configPath != null && file.exists()) {
-                return configPath;
-            }
-        }
-
-        configPath = tryToGetPathLastResort();
-        if (configPath != null) {
-            file = new File(configPath);
-            if (configPath != null && file.exists()) {
-                return configPath;
-            }
-        }
-
-        throw new RuntimeException("Could not find and load wps_config.xml");
-    }
-
-    public static String tryToGetPathFromClassPath() {
-        URL configPathURL = WPSConfig.class.getClassLoader().getResource(CONFIG_FILE_NAME);
-        if (configPathURL != null) {
-            String config = configPathURL.getFile();
-            try {
-                config = URLDecoder.decode(config, URL_DECODE_ENCODING);
-            }
-            catch (UnsupportedEncodingException e) {
-                LOGGER.error("Could not devode URL to get config from class path.", e);
-                return null;
-            }
-            return config;
-        }
-        return null;
-    }
-
-    public static String tryToGetPathFromWebAppTarget() {
-        String domain = WPSConfig.class.getProtectionDomain().getCodeSource().getLocation().getFile();
-        int index1 = domain.indexOf("52n-wps-parent");
-        if (index1 > 0) {
-            // try to load from classpath
-            String ds = domain.substring(0, index1 + 14);
-            String path;
-            try {
-                path = URLDecoder.decode(ds, URL_DECODE_ENCODING);
-            }
-            catch (UnsupportedEncodingException e) {
-                LOGGER.error("could not decode URL", e);
-                return null;
-            }
-            
-            path = path + File.separator + "52n-wps-webapp" + File.separator + "target";
-            File f = new File(path);
-            String[] dirs = f.getAbsoluteFile().list();
-            if (dirs != null) {
-                for (String dir : dirs) {
-                    if (dir.startsWith("52n-wps-webapp") && !dir.endsWith(".war")) {
-                        path = path + File.separator + dir + File.separator + CONFIG_FILE_DIR + "/" + CONFIG_FILE_NAME;
-                    }
-                }
-                return path;
-            }
-        }
-        return null;
-
-    }
-
-    public static String tryToGetPathFromWebAppSource() {
-        String domain = WPSConfig.class.getProtectionDomain().getCodeSource().getLocation().getFile();
-        int index1 = domain.indexOf("52n-wps-parent");
-        if (index1 > 0) {
-            // try to load from classpath
-            String ds = domain.substring(0, index1 + 14);
-            String path;
-            try {
-                path = URLDecoder.decode(ds, URL_DECODE_ENCODING);
-            }
-            catch (UnsupportedEncodingException e) {
-                LOGGER.error("could not decode URL", e);
-                return null;
-            }
-            
-            path = path + File.separator + "52n-wps-webapp";
-            File f = new File(path);
-            String[] dirs = f.getAbsoluteFile().list();
-            if (dirs != null) {
-                for (String dir : dirs) {
-                    if (dir.equals("src")) {
-                        path = path + File.separator + dir + File.separator + "main" + File.separator + "webapp"
-                                + File.separator + CONFIG_FILE_DIR + File.separator + CONFIG_FILE_NAME;
-                    }
-                }
-                if ( ! (new File(path)).exists()) {
-                    return null;
-                }
-                return path;
-            }
-        }
-        return null;
-    }
-
-    public static String tryToGetPathViaWebAppPath() {
-    	//XXX: any objections against using getResource("/") instead?
-//        String domain = WPSConfig.class.getProtectionDomain().getCodeSource().getLocation().getFile();
-    	String domain;
-		try {
-			domain = new File(WPSConfig.class.getResource("/").toURI()).toString();
-		} catch (URISyntaxException e) {
-			throw new RuntimeException(e);
+	public static String getConfigPath() {
+		if (configPath == null) {
+			return getConfigPath(null);
 		}
-        int index = domain.indexOf("WEB-INF");
-        if (index > 0) {
-            String substring = domain.substring(0, index);
-//            if ( !substring.endsWith("/")) {
-//                substring = substring + "/";
-//            }
-//            substring = substring + CONFIG_FILE_DIR + File.separator + CONFIG_FILE_NAME;
-            File configDir = new File(new File(substring), CONFIG_FILE_DIR);
-            if (configDir.exists() && configDir.isDirectory()) {
-            	return new File(configDir, CONFIG_FILE_NAME).getAbsolutePath();
-            }
-        }
-        return null;
-    }
-
-    public static String tryToGetPathLastResort() {
-        String domain = WPSConfig.class.getProtectionDomain().getCodeSource().getLocation().getFile();
-        
-        try {
-			domain = URLDecoder.decode(domain, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			LOGGER.warn("Could not decode URL of WPSConfig class, continuing.");
-		}
-        
-        /*
-         * domain should always be 52n-wps-commons/target/classes so we just go three directories up
-         */
-        File classDir = new File(domain);
-
-        File projectRoot = classDir.getParentFile().getParentFile().getParentFile();
-
-        String path = projectRoot.getAbsolutePath();
-
-        String[] dirs = projectRoot.getAbsoluteFile().list();
-        for (String dir : dirs) {
-            if (dir.startsWith("52n-wps-webapp") && !dir.endsWith(".war")) {
-                path = path + File.separator + dir + File.separator + "src" + File.separator + "main" + File.separator
-                        + "webapp" + File.separator + CONFIG_FILE_DIR + File.separator + CONFIG_FILE_NAME;
-            }
-        }
-        LOGGER.info(path);
-        return path;
-    }
+		return configPath;
+	}
 
     public WPSConfigurationImpl getWPSConfig() {
         return wpsConfigXMLBeans;
@@ -449,10 +291,10 @@ public class WPSConfig implements Serializable {
 
     public Parser[] getActiveRegisteredParser() {
         Parser[] parsers = getRegisteredParser();
-        ArrayList<Parser> activeParsers = new ArrayList<Parser>();
-        for (int i = 0; i < parsers.length; i++) {
-            if (parsers[i].getActive()) {
-                activeParsers.add(parsers[i]);
+        ArrayList<Parser> activeParsers = new ArrayList<Parser>(parsers.length);
+        for (Parser parser : parsers) {
+            if (parser.getActive()) {
+                activeParsers.add(parser);
             }
         }
         Parser[] parArr = {};
@@ -465,10 +307,10 @@ public class WPSConfig implements Serializable {
 
     public Generator[] getActiveRegisteredGenerator() {
         Generator[] generators = getRegisteredGenerator();
-        ArrayList<Generator> activeGenerators = new ArrayList<Generator>();
-        for (int i = 0; i < generators.length; i++) {
-            if (generators[i].getActive()) {
-                activeGenerators.add(generators[i]);
+        ArrayList<Generator> activeGenerators = new ArrayList<Generator>(generators.length);
+        for (Generator generator : generators) {
+            if (generator.getActive()) {
+                activeGenerators.add(generator);
             }
         }
         Generator[] genArr = {};
@@ -482,8 +324,7 @@ public class WPSConfig implements Serializable {
 
     public Property[] getPropertiesForGeneratorClass(String className) {
         Generator[] generators = wpsConfigXMLBeans.getDatahandlers().getGeneratorList().getGeneratorArray();
-        for (int i = 0; i < generators.length; i++) {
-            Generator generator = generators[i];
+        for (Generator generator : generators) {
             if (generator.getClassName().equals(className)) {
                 return generator.getPropertyArray();
             }
@@ -494,8 +335,7 @@ public class WPSConfig implements Serializable {
 
     public Format[] getFormatsForGeneratorClass(String className) {
         Generator[] generators = wpsConfigXMLBeans.getDatahandlers().getGeneratorList().getGeneratorArray();
-        for (int i = 0; i < generators.length; i++) {
-            Generator generator = generators[i];
+        for (Generator generator : generators) {
             if (generator.getClassName().equals(className)) {
                 return generator.getFormatArray();
             }
@@ -506,8 +346,7 @@ public class WPSConfig implements Serializable {
 
     public Property[] getPropertiesForParserClass(String className) {
         Parser[] parsers = wpsConfigXMLBeans.getDatahandlers().getParserList().getParserArray();
-        for (int i = 0; i < parsers.length; i++) {
-            Parser parser = parsers[i];
+        for (Parser parser : parsers) {
             if (parser.getClassName().equals(className)) {
                 return parser.getPropertyArray();
             }
@@ -518,8 +357,7 @@ public class WPSConfig implements Serializable {
 
     public Format[] getFormatsForParserClass(String className) {
         Parser[] parsers = wpsConfigXMLBeans.getDatahandlers().getParserList().getParserArray();
-        for (int i = 0; i < parsers.length; i++) {
-            Parser parser = parsers[i];
+        for (Parser parser : parsers) {
             if (parser.getClassName().equals(className)) {
                 return parser.getFormatArray();
             }
@@ -530,8 +368,7 @@ public class WPSConfig implements Serializable {
 
     public boolean isParserActive(String className) {
         Parser[] activeParser = getActiveRegisteredParser();
-        for (int i = 0; i < activeParser.length; i++) {
-            Parser parser = activeParser[i];
+        for (Parser parser : activeParser) {
             if (parser.getClassName().equals(className)) {
                 return parser.getActive();
             }
@@ -541,8 +378,7 @@ public class WPSConfig implements Serializable {
 
     public boolean isGeneratorActive(String className) {
         Generator[] generators = getActiveRegisteredGenerator();
-        for (int i = 0; i < generators.length; i++) {
-            Generator generator = generators[i];
+        for (Generator generator : generators) {
             if (generator.getClassName().equals(className)) {
                 return generator.getActive();
             }
@@ -552,8 +388,7 @@ public class WPSConfig implements Serializable {
 
     public boolean isRepositoryActive(String className) {
         Repository[] repositories = getRegisterdAlgorithmRepositories();
-        for (int i = 0; i < repositories.length; i++) {
-            Repository repository = repositories[i];
+        for (Repository repository : repositories) {
             if (repository.getClassName().equals(className)) {
                 return repository.getActive();
             }
@@ -564,8 +399,7 @@ public class WPSConfig implements Serializable {
 
     public Property[] getPropertiesForRepositoryClass(String className) {
         Repository[] repositories = getRegisterdAlgorithmRepositories();
-        for (int i = 0; i < repositories.length; i++) {
-            Repository repository = repositories[i];
+        for (Repository repository : repositories) {
             if (repository.getClassName().equals(className)) {
                 return repository.getPropertyArray();
             }
@@ -584,12 +418,242 @@ public class WPSConfig implements Serializable {
     }
 
     /**
-     * 
+     *
      * @return directory of the configuration folder
      */
-    public static final String getConfigDir() {
+    public static String getConfigDir() {
         String dir = getConfigPath();
         return dir.substring(0, dir.lastIndexOf(CONFIG_FILE_NAME));
     }
 
+    public static abstract class WPSConfigFileStrategy {
+        public Optional<File> find(Optional<ServletConfig> servletConfig) {
+            return checkPath(getPath(servletConfig));
+        }
+
+        private Optional<File> checkPath(String path) {
+            if (path != null && !path.isEmpty()) {
+                LOGGER.debug("Checking {} for WPS config", path);
+                File file = new File(path);
+                if (!file.exists()) {
+                    LOGGER.debug("{} does not exist", path);
+                } else if (!file.isFile()) {
+                    LOGGER.debug("{} is not a file", path);
+                } else if (!file.canRead()) {
+                    LOGGER.debug("{} is not readable", path);
+                } else {
+                    return Optional.of(file);
+                }
+            }
+            return Optional.absent();
+        }
+
+        protected abstract String getPath(Optional<ServletConfig> servletConfig);
+    }
+
+    private static class SystemPropertyStrategy extends WPSConfigFileStrategy {
+        @Override
+        protected String getPath(Optional<ServletConfig> servletConfig) {
+            return System.getProperty(CONFIG_FILE_PROPERTY);
+        }
+    }
+
+    private static class JNDIContextStrategy extends WPSConfigFileStrategy {
+        @Override
+        protected String getPath(Optional<ServletConfig> servletConfig) {
+            try {
+                Context ctx = (Context) new InitialContext().lookup("java:comp/env");
+                if (ctx == null) {
+                    return null;
+                }
+                return (String) ctx.lookup(CONFIG_FILE_PROPERTY);
+            } catch (NamingException ex) {
+                LOGGER.info("Can not get java:comp/env context", ex);
+                return null;
+            }
+        }
+    }
+
+    private static class InitParameterStrategy extends WPSConfigFileStrategy {
+        @Override
+        protected String getPath(Optional<ServletConfig> servletConfig) {
+            return servletConfig.isPresent() ? servletConfig.get().getInitParameter(CONFIG_FILE_PROPERTY) : null;
+        }
+    }
+
+    private static class RelativeInitParameterStrategy extends WPSConfigFileStrategy {
+        @Override
+        protected String getPath(Optional<ServletConfig> servletConfig) {
+            if (servletConfig.isPresent()) {
+                String path = servletConfig.get().getInitParameter(CONFIG_FILE_PROPERTY);
+                if (path != null) {
+                    return servletConfig.get().getServletContext().getRealPath(path);
+                }
+            }
+            return null;
+        }
+    }
+
+    private static class DefaultPathStrategy extends WPSConfigFileStrategy {
+        @Override
+        protected String getPath(Optional<ServletConfig> servletConfig) {
+            return servletConfig.isPresent()? servletConfig.get().getServletContext()
+                .getRealPath(CONFIG_FILE_DIR + File.separator + CONFIG_FILE_NAME) : null;
+        }
+    }
+
+    private static class ClassPathStrategy extends WPSConfigFileStrategy {
+        @Override
+        protected String getPath(Optional<ServletConfig> servletConfig) {
+            URL configPathURL = WPSConfig.class.getClassLoader().getResource(CONFIG_FILE_NAME);
+            if (configPathURL != null) {
+                String config = configPathURL.getFile();
+                try {
+                    config = URLDecoder.decode(config, URL_DECODE_ENCODING);
+                }
+                catch (UnsupportedEncodingException e) {
+                    LOGGER.error("Could not devode URL to get config from class path.", e);
+                    return null;
+                }
+                return config;
+            }
+            return null;
+        }
+    }
+
+    private static class WebAppTargetStrategy extends WPSConfigFileStrategy {
+        @Override
+        protected String getPath(Optional<ServletConfig> servletConfig) {
+            String domain = WPSConfig.class.getProtectionDomain().getCodeSource().getLocation().getFile();
+            int index1 = domain.indexOf("52n-wps-parent");
+            if (index1 > 0) {
+                // try to load from classpath
+                String ds = domain.substring(0, index1 + 14);
+                String path;
+                try {
+                    path = URLDecoder.decode(ds, URL_DECODE_ENCODING);
+                }
+                catch (UnsupportedEncodingException e) {
+                    LOGGER.error("could not decode URL", e);
+                    return null;
+                }
+
+                path = path + File.separator + "52n-wps-webapp" + File.separator + "target";
+                File f = new File(path);
+                String[] dirs = f.getAbsoluteFile().list();
+                if (dirs != null) {
+                    for (String dir : dirs) {
+                        if (dir.startsWith("52n-wps-webapp") && !dir.endsWith(".war")) {
+                            path = path + File.separator + dir + File.separator + CONFIG_FILE_DIR + "/" + CONFIG_FILE_NAME;
+                        }
+                    }
+                    return path;
+                }
+            }
+            return null;
+        }
+    }
+
+    private static class WebAppSourceStrategy extends WPSConfigFileStrategy {
+        @Override
+        protected String getPath(Optional<ServletConfig> servletConfig) {
+            String domain = WPSConfig.class.getProtectionDomain().getCodeSource().getLocation().getFile();
+            int index1 = domain.indexOf("52n-wps-parent");
+            if (index1 > 0) {
+                // try to load from classpath
+                String ds = domain.substring(0, index1 + 14);
+                String path;
+                try {
+                    path = URLDecoder.decode(ds, URL_DECODE_ENCODING);
+                }
+                catch (UnsupportedEncodingException e) {
+                    LOGGER.error("could not decode URL", e);
+                    return null;
+                }
+
+                path = path + File.separator + "52n-wps-webapp";
+                File f = new File(path);
+                String[] dirs = f.getAbsoluteFile().list();
+                if (dirs != null) {
+                    for (String dir : dirs) {
+                        if (dir.equals("src")) {
+                            path = path + File.separator + dir + File.separator + "main" + File.separator + "webapp"
+                                    + File.separator + CONFIG_FILE_DIR + File.separator + CONFIG_FILE_NAME;
+                        }
+                    }
+                    if ( ! (new File(path)).exists()) {
+                        return null;
+                    }
+                    return path;
+                }
+            }
+            return null;
+        }
+    }
+
+    private static class WebAppPathStrategy extends WPSConfigFileStrategy {
+        @Override
+        protected String getPath(Optional<ServletConfig> servletConfig) {
+            //XXX: any objectctions against using getResource("/") instead?
+            // String domain = WPSConfig.class.getProtectionDomain().getCodeSource().getLocation().getFile();
+            String domain;
+            try {
+                domain = new File(WPSConfig.class.getResource("/").toURI()).toString();
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+            int index = domain.indexOf("WEB-INF");
+            if (index > 0) {
+                String substring = domain.substring(0, index);
+                // if ( !substring.endsWith("/")) {
+                //     substring = substring + "/";
+                // }
+                // substring = substring + CONFIG_FILE_DIR + File.separator + CONFIG_FILE_NAME;
+                File configDir = new File(new File(substring), CONFIG_FILE_DIR);
+                if (configDir.exists() && configDir.isDirectory()) {
+                    return new File(configDir, CONFIG_FILE_NAME).getAbsolutePath();
+                }
+            }
+            return null;
+        }
+    }
+
+    private static class LastResortStrategy extends WPSConfigFileStrategy {
+        @Override
+        protected String getPath(Optional<ServletConfig> servletConfig) {
+            String domain = WPSConfig.class.getProtectionDomain().getCodeSource().getLocation().getFile();
+
+            try {
+                domain = URLDecoder.decode(domain, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                LOGGER.warn("Could not decode URL of WPSConfig class, continuing.");
+            }
+
+            /*
+             * domain should always be 52n-wps-commons/target/classes so we just go three directories up
+             */
+            File classDir = new File(domain);
+
+            File projectRoot = classDir.getParentFile().getParentFile().getParentFile();
+
+            String path = projectRoot.getAbsolutePath();
+
+            String[] dirs = projectRoot.getAbsoluteFile().list();
+            for (String dir : dirs) {
+                if (dir.startsWith("52n-wps-webapp") && !dir.endsWith(".war")) {
+                    path = path + File.separator + dir + File.separator + "src" + File.separator + "main" + File.separator
+                            + "webapp" + File.separator + CONFIG_FILE_DIR + File.separator + CONFIG_FILE_NAME;
+                }
+            }
+            LOGGER.info(path);
+            return path;
+        }
+    }
+
+    private static class HomeFolderStrategy extends WPSConfigFileStrategy {
+        @Override
+        protected String getPath(Optional<ServletConfig> servletConfig) {
+            return System.getProperty("user.home") + File.separator + CONFIG_FILE_NAME;
+        }
+    }
 }

@@ -1,30 +1,33 @@
 /**
- * ﻿Copyright (C) 2007
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2007 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
-
 package org.n52.wps.server.database;
 
-import com.google.common.base.Joiner;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,15 +45,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
 import org.apache.commons.io.IOUtils;
 import org.n52.wps.DatabaseDocument.Database;
 import org.n52.wps.ServerDocument.Server;
-import org.n52.wps.commons.PropertyUtil;
 import org.n52.wps.commons.MIMEUtil;
+import org.n52.wps.commons.PropertyUtil;
 import org.n52.wps.commons.WPSConfig;
 import org.n52.wps.commons.XMLUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Joiner;
 
 /*
  * @author tkunicki (Thomas Kunicki, USGS)
@@ -65,15 +71,17 @@ public final class FlatFileDatabase implements IDatabase {
     private final static String KEY_DATABASE_WIPE_ENABLED = "wipe.enabled";
     private final static String KEY_DATABASE_WIPE_PERIOD = "wipe.period";
     private final static String KEY_DATABASE_WIPE_THRESHOLD = "wipe.threshold";
+    private final static String KEY_DATABASE_COMPLEX_GZIP = "complex.gzip";
     
     private final static String DEFAULT_DATABASE_PATH = 
             Joiner.on(File.separator).join(
                 System.getProperty("java.io.tmpdir", "."),
                 "Database",
                 "Results");
-    private final static boolean DEFAULT_DATABASE_WIPE_ENABLED = true;  // P1H
+    private final static boolean DEFAULT_DATABASE_WIPE_ENABLED = true;
     private final static long DEFAULT_DATABASE_WIPE_PERIOD = 1000 * 60 * 60;  // P1H
     private final static long DEFAULT_DATABASE_WIPE_THRESHOLD = 1000 * 60 * 60 * 24 * 7; // P7D
+    private final static boolean DEFAULT_DATABASE_COMPLEX_GZIP = true; // P7D
     
     private final static String SUFFIX_MIMETYPE = "mime-type";
     private final static String SUFFIX_CONTENT_LENGTH = "content-length";
@@ -106,7 +114,7 @@ public final class FlatFileDatabase implements IDatabase {
 
     protected final String baseResultURL;
 
-    protected final boolean gzipComplexValues = true;
+    protected final boolean gzipComplexValues;
 
     protected final Object storeResponseSerialNumberLock;
 
@@ -145,6 +153,8 @@ public final class FlatFileDatabase implements IDatabase {
         } else {
             wipeTimer = null;
         }
+
+        gzipComplexValues = propertyUtil.extractBoolean(KEY_DATABASE_COMPLEX_GZIP, DEFAULT_DATABASE_COMPLEX_GZIP);
 
         storeResponseSerialNumberLock = new Object();
     }

@@ -1,25 +1,30 @@
 /**
- * ﻿Copyright (C) 2007
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2007 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
 package org.n52.wps.server.algorithm.test;
 
@@ -30,16 +35,16 @@ import java.util.List;
 import java.util.Map;
 
 import org.n52.wps.io.data.IData;
-import org.n52.wps.io.data.binding.bbox.GTReferenceEnvelope;
+import org.n52.wps.io.data.binding.bbox.BoundingBoxData;
 import org.n52.wps.io.data.binding.complex.GenericFileDataBinding;
 import org.n52.wps.io.data.binding.literal.LiteralStringBinding;
 import org.n52.wps.server.AbstractSelfDescribingAlgorithm;
 
 /**
  * This class can be used to test asynchronous requests with literal and BBOX output data.
- * It is basically the same as the DummyTestClass, only it lets the Thread sleep 5 seconds 
+ * It is basically the same as the DummyTestClass, only it lets the Thread sleep 5 seconds
  * to allow the test client to request a status update.
- * 
+ *
  * @author Benjamin Pross(bpross-52n)
  *
  */
@@ -50,8 +55,8 @@ public class LongRunningDummyTestClass extends AbstractSelfDescribingAlgorithm {
 	private final String outputID1 = "ComplexOutputData";
 	private final String outputID2 = "LiteralOutputData";
 	private final String outputID3 = "BBOXOutputData";
-	
-	private List<String> errors = new ArrayList<String>();	
+
+	private List<String> errors = new ArrayList<String>();
 
 	public List<String> getErrors() {
 		return errors;
@@ -65,15 +70,15 @@ public class LongRunningDummyTestClass extends AbstractSelfDescribingAlgorithm {
 			return LiteralStringBinding.class;
 		}
 		if (id.equalsIgnoreCase(inputID3)) {
-			return GTReferenceEnvelope.class;
+			return BoundingBoxData.class;
 		}
 		return null;
-		
+
 	}
 	@Override
 	public BigInteger getMinOccurs(String identifier){
 		return new BigInteger("0");
-	}	
+	}
 
 	public Class<?> getOutputDataType(String id) {
 		if (id.equalsIgnoreCase(outputID1)) {
@@ -83,11 +88,11 @@ public class LongRunningDummyTestClass extends AbstractSelfDescribingAlgorithm {
 			return LiteralStringBinding.class;
 		}
 		if (id.equalsIgnoreCase(outputID3)) {
-			return GTReferenceEnvelope.class;
+			return BoundingBoxData.class;
 		}
 		return null;
 	}
-	
+
 	@Override
 	public List<String> getInputIdentifiers() {
 		List<String> identifierList =  new ArrayList<String>();
@@ -104,7 +109,7 @@ public class LongRunningDummyTestClass extends AbstractSelfDescribingAlgorithm {
 		identifierList.add(outputID2);
 		identifierList.add(outputID3);
 		return identifierList;
-	}	
+	}
 
 	@Override
 	public Map<String, IData> run(Map<String, List<IData>> inputData) {
@@ -118,34 +123,34 @@ public class LongRunningDummyTestClass extends AbstractSelfDescribingAlgorithm {
 		if(inputData.containsKey(inputID3)){
 			result.put(outputID3, inputData.get(inputID3).get(0));
 		}
-		
+
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			errors.add(e.getMessage());
 		}
-			
+
 		return result;
 	}
-	
+
 	@Override
 	public String[] getSupportedCRSForBBOXInput(String identifier){
 		String[] supportedCRS = new String[2];
 		supportedCRS[0] = "EPSG:4328";
 		supportedCRS[1] = "EPSG:5628";
-		
+
 		return supportedCRS;
 	}
-	
+
 	@Override
 	public String[] getSupportedCRSForBBOXOutput(String identifier){
 		String[] supportedCRS = new String[2];
 		supportedCRS[0] = "EPSG:4328";
 		supportedCRS[1] = "EPSG:5628";
-		
+
 		return supportedCRS;
 	}
-	
-	
+
+
 
 }

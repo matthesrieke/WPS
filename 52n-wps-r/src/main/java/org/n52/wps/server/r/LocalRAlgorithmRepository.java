@@ -1,26 +1,32 @@
 /**
- * ﻿Copyright (C) 2010
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2010 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
+
 package org.n52.wps.server.r;
 
 import java.util.ArrayList;
@@ -31,6 +37,8 @@ import java.util.Map;
 
 import net.opengis.wps.x100.ProcessDescriptionType;
 
+import org.apache.xmlbeans.XmlError;
+import org.apache.xmlbeans.XmlOptions;
 import org.n52.wps.PropertyDocument.Property;
 import org.n52.wps.commons.WPSConfig;
 import org.n52.wps.server.IAlgorithm;
@@ -52,15 +60,15 @@ public class LocalRAlgorithmRepository implements ITransactionalAlgorithmReposit
 
     private static Logger LOGGER = LoggerFactory.getLogger(LocalRAlgorithmRepository.class);
 
-    // registered Processes
-    private Map<String, String> algorithmMap;
+    // registered processes
+    private Map<String, IAlgorithm> algorithms;
 
-    // local cache for algorithm descriptions
-    private Map<String, GenericRProcess> algorithmDescriptionMap = new HashMap<String, GenericRProcess>();
+    private R_Config rConfig;
 
     public LocalRAlgorithmRepository() {
         LOGGER.info("Initializing LocalRAlgorithmRepository");
-        this.algorithmMap = new HashMap<String, String>();
+        this.algorithms = new HashMap<String, IAlgorithm>();
+        this.rConfig = R_Config.getInstance();
 
         // Check WPS Config properties:
         RPropertyChangeManager changeManager = RPropertyChangeManager.getInstance();
@@ -80,34 +88,31 @@ public class LocalRAlgorithmRepository implements ITransactionalAlgorithmReposit
      * 
      * @return
      */
-    private boolean checkStartUpConditions()
-    {
+    private boolean checkStartUpConditions() {
         // check if the repository is active:
         String className = this.getClass().getCanonicalName();
-        if (!WPSConfig.getInstance().isRepositoryActive(className)) {
+        if ( !WPSConfig.getInstance().isRepositoryActive(className)) {
             LOGGER.debug("Local R Algorithm Repository is inactive.");
             return false;
         }
 
-        // Try to build up a connection to Rserve
-        // If it is refused, a new instance of Rserve will be opened
-        LOGGER.debug("[Rserve] Trying to connect to Rserve.");
-        R_Config rConfig = R_Config.getInstance();
+        // Try to build up a connection to Rserve. If it is refused, a new instance of Rserve will be opened
+        LOGGER.debug("Trying to connect to Rserve.");
         try {
             RConnection testcon = rConfig.openRConnection();
-            LOGGER.info("[Rserve] WPS successfully connected to Rserve.");
+            LOGGER.info("WPS successfully connected to Rserve.");
             testcon.close();
-        } catch (RserveException e) {
+        }
+        catch (RserveException e) {
             // try to start Rserve via batchfile if enabled
-            LOGGER.error("[Rserve] Could not connect to Rserve. Rserve may not be available or may not be ready at the current time.", e);
-            e.printStackTrace();
+            LOGGER.error("[Rserve] Could not connect to Rserve. Rserve may not be available or may not be ready at the current time.",
+                         e);
             return false;
         }
         return true;
     }
 
-    private void addAllAlgorithms()
-    {
+    private void addAllAlgorithms() {
         // add algorithms from config file to repository
         List<RProcessInfo> processInfoList = new ArrayList<RProcessInfo>();
         Property[] propertyArray = WPSConfig.getInstance().getPropertiesForRepositoryClass(this.getClass().getCanonicalName());
@@ -116,26 +121,27 @@ public class LocalRAlgorithmRepository implements ITransactionalAlgorithmReposit
             RProcessInfo processInfo = null;
             String algorithm_wkn = property.getStringValue();
 
-            if (property.getName().equalsIgnoreCase(RWPSConfigVariables.ALGORITHM.toString())) {
-                processInfo = new RProcessInfo(algorithm_wkn);
+            if (property.getName().equalsIgnoreCase(RWPSConfigVariables.ALGORITHM_PROPERTY_NAME.toString())) {
+                processInfo = new RProcessInfo(algorithm_wkn, this.rConfig);
                 processInfoList.add(processInfo);
-            } else
+            }
+            else
                 continue;
 
             if (property.getActive()) {
-                if (!processInfo.isAvailable()) {
+                if ( !processInfo.isAvailable()) {
                     // property.setActive(false);
                     // propertyChanged=true;
-                    LOGGER.error("[WPS4R] Missing R script for process " + algorithm_wkn + ". Process ignored. Check WPS configuration.");
+                    LOGGER.error("Missing R script for process '{}'. Process ignored - check WPS configuration.",
+                                 algorithm_wkn);
                     continue;
                 }
 
-                if (!processInfo.isValid()) {
+                if ( !processInfo.isValid()) {
                     // property.setActive(false);
                     // propertyChanged=true;
-                    LOGGER.error("[WPS4R] Invalid R script for process " + algorithm_wkn
-                    // + ". Process ignored. Check previous logs.");
-                            + ". You may enable/disable it manually from the Web Admin console. Check previous logs for details.");
+                    LOGGER.error("Invalid R script for process '{}'. You may enable/disable it manually from the Web Admin console. Check logs for details.",
+                                 algorithm_wkn);
                 }
 
                 addAlgorithm(algorithm_wkn);
@@ -166,8 +172,7 @@ public class LocalRAlgorithmRepository implements ITransactionalAlgorithmReposit
         RProcessInfo.setRProcessInfoList(processInfoList);
     }
 
-    public boolean addAlgorithms(String[] algorithms)
-    {
+    public boolean addAlgorithms(String[] algorithms) {
         for (String algorithmClassName : algorithms) {
             addAlgorithm(algorithmClassName);
         }
@@ -176,103 +181,112 @@ public class LocalRAlgorithmRepository implements ITransactionalAlgorithmReposit
 
     }
 
-    public IAlgorithm getAlgorithm(String className)
-    {
-        try {
-            return loadAlgorithm(this.algorithmMap.get(className));
-        } catch (Exception e) {
-            String message = "Could not load algorithm for class name " + className;
-            LOGGER.error(message, e);
-            throw new RuntimeException(message + '\n' + e.getMessage(), e);
+    @Override
+    public IAlgorithm getAlgorithm(String algorithmName) {
+        if ( !this.rConfig.getCacheProcesses()) {
+            LOGGER.debug("Process cache disabled, creating new process for id '{}'", algorithmName);
+            boolean b = addAlgorithm(algorithmName);
+            if ( !b)
+                LOGGER.warn("Problem adding algorithm for deactivated cache.");
         }
+
+        if ( !this.algorithms.containsKey(algorithmName))
+            throw new RuntimeException("This repository does not contain an algorithm '" + algorithmName + "'");
+        else
+            return this.algorithms.get(algorithmName);
     }
 
-    public Collection<IAlgorithm> getAlgorithms()
-    {
-        Collection<IAlgorithm> resultList = new ArrayList<IAlgorithm>();
-        try {
-            for (String algorithmClasses : this.algorithmMap.values()) {
-                String algName = this.algorithmMap.get(algorithmClasses);
-                IAlgorithm algorithm = loadAlgorithm(algName);
-                resultList.add(algorithm);
-            }
-        } catch (Exception e) {
-            String message = "Could not load algorithms.";
-            LOGGER.error(message, e);
-            throw new RuntimeException(message, e);
-
-        }
-        return resultList;
+    public Collection<String> getAlgorithmNames() {
+        return new ArrayList<String>(this.algorithms.keySet());
     }
 
-    public Collection<String> getAlgorithmNames()
-    {
-        return new ArrayList<String>(this.algorithmMap.keySet());
+    @Override
+    public boolean containsAlgorithm(String className) {
+        return this.algorithms.containsKey(className);
     }
 
-    public boolean containsAlgorithm(String className)
-    {
-        return this.algorithmMap.containsKey(className);
-    }
-
-    private static IAlgorithm loadAlgorithm(String wellKnownName) throws Exception
-    {
-        LOGGER.debug("Loading algorithm '" + wellKnownName + "'");
+    private IAlgorithm loadAlgorithmAndValidate(String wellKnownName) throws Exception {
+        LOGGER.debug("Loading algorithm '{}'", wellKnownName);
 
         IAlgorithm algorithm = new GenericRProcess(wellKnownName);
-        if (!algorithm.processDescriptionIsValid()) {
-            LOGGER.warn("Algorithm description is not valid: " + wellKnownName);
-            throw new Exception("Could not load algorithm " + wellKnownName + ". ProcessDescription Not Valid.");
+
+        if ( !algorithm.processDescriptionIsValid()) {
+            // collect the errors
+            ProcessDescriptionType description = algorithm.getDescription();
+            XmlOptions validateOptions = new XmlOptions();
+            ArrayList<XmlError> errorList = new ArrayList<XmlError>();
+            validateOptions.setErrorListener(errorList);
+            // run validation again
+            description.validate(validateOptions);
+            StringBuilder validationMessages = new StringBuilder();
+            validationMessages.append("\n");
+
+            for (XmlError e : errorList) {
+                validationMessages.append("[");
+                validationMessages.append(e.getLine());
+                validationMessages.append(" | ");
+                validationMessages.append(e.getErrorCode());
+                validationMessages.append("] ");
+                validationMessages.append(e.getMessage());
+                validationMessages.append("\n");
+            }
+            LOGGER.warn("Algorithm description is not valid {}. Errors: {}",
+                        wellKnownName,
+                        validationMessages.toString());
+
+            throw new Exception("Could not load algorithm " + wellKnownName + ". ProcessDescription not valid: "
+                    + validationMessages.toString());
         }
+
         return algorithm;
     }
 
-    public boolean addAlgorithm(Object processID)
-    {
-        if (!(processID instanceof String)) {
-            return false;
+    @Override
+    public boolean addAlgorithm(Object processID) {
+        if (processID instanceof String) {
+            String algorithmName = (String) processID;
+
+            try {
+                IAlgorithm a = loadAlgorithmAndValidate(algorithmName);
+                this.algorithms.put(algorithmName, a);
+                LOGGER.info("Algorithm under name '{}' added: {}", algorithmName, a);
+
+                return true;
+            }
+            catch (Exception e) {
+                String message = "Could not load algorithm for class name '" + algorithmName + "'";
+                LOGGER.error(message, e);
+                throw new RuntimeException(message + ": " + e.getMessage(), e);
+            }
         }
-        String algorithmClassName = (String) processID;
-
-        this.algorithmMap.put(algorithmClassName, algorithmClassName);
-        LOGGER.info("Algorithm class registered: " + algorithmClassName);
-
-        return true;
+        else
+            return false;
     }
 
-    /**
-     * Removes algorithm from AlgorithmMap
-     */
-    public boolean removeAlgorithm(Object processID)
-    {
-        if (!(processID instanceof String)) {
+    @Override
+    public boolean removeAlgorithm(Object processID) {
+        if ( ! (processID instanceof String)) {
+            LOGGER.debug("Could not remove algorithm with processID {}", processID);
             return false;
         }
-        String processName = (String) processID;
-        if (this.algorithmMap.containsKey(processName)) {
-            this.algorithmMap.remove(processName);
-        }
 
+        String id = (String) processID;
+        if (this.algorithms.containsKey(id))
+            this.algorithms.remove(id);
+
+        LOGGER.info("Removed algorithm: {}", id);
         return true;
     }
 
     @Override
-    public ProcessDescriptionType getProcessDescription(String processID)
-    {
-        if (this.algorithmMap.containsKey(processID)) {
-            LOGGER.debug("Creating new process to get the description for " + processID);
-            GenericRProcess process = new GenericRProcess(processID);
-            this.algorithmDescriptionMap.put(processID, process);
-        }
-
-        LOGGER.debug("Returning  process description from cache: " + processID);
-        return this.algorithmDescriptionMap.get(processID).getDescription();
+    public ProcessDescriptionType getProcessDescription(String processID) {
+        return getAlgorithm(processID).getDescription();
     }
 
     @Override
-    public void shutdown()
-    {
+    public void shutdown() {
         LOGGER.info("Shutting down ...");
+        this.algorithms.clear();
     }
 
 }

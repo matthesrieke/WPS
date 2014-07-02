@@ -1,35 +1,36 @@
 /**
- * ﻿Copyright (C) 2007
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2007 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
-
-
 package org.n52.wps.server.response;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -47,20 +48,23 @@ import net.opengis.wps.x100.ProcessDescriptionType;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+
 import org.n52.wps.io.BasicXMLTypeFactory;
 import org.n52.wps.io.IOHandler;
+import org.n52.wps.io.data.IBBOXData;
 import org.n52.wps.io.data.IData;
 import org.n52.wps.io.data.binding.literal.AbstractLiteralDataBinding;
 import org.n52.wps.server.ExceptionReport;
 import org.n52.wps.server.database.DatabaseFactory;
 import org.n52.wps.server.database.IDatabase;
-import org.opengis.geometry.Envelope;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
+
+import com.google.common.primitives.Doubles;
 
 /*
  * @author foerster
@@ -68,12 +72,12 @@ import org.w3c.dom.Node;
  */
 public class OutputDataItem extends ResponseData {
 
-	private static Logger LOGGER = LoggerFactory.getLogger(OutputDataItem.class);
-	private static String COMPLEX_DATA_TYPE = "ComplexDataResponse";
-	private LanguageStringType title;	
+	private static final Logger LOGGER = LoggerFactory.getLogger(OutputDataItem.class);
+	private static final String COMPLEX_DATA_TYPE = "ComplexDataResponse";
+	private LanguageStringType title;
 
 	/**
-	 * 
+	 *
 	 * @param obj
 	 * @param id
 	 * @param schema
@@ -81,17 +85,17 @@ public class OutputDataItem extends ResponseData {
 	 * @param mimeType
 	 * @param title
 	 * @param algorithmIdentifier
-	 * @throws ExceptionReport 
+	 * @throws ExceptionReport
 	 */
-	public OutputDataItem(IData obj, String id, String schema, String encoding, 
+	public OutputDataItem(IData obj, String id, String schema, String encoding,
 			String mimeType, LanguageStringType title, String algorithmIdentifier, ProcessDescriptionType description) throws ExceptionReport {
 		super(obj, id, schema, encoding, mimeType, algorithmIdentifier, description);
-		
+
 		this.title = title;
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @param res
 	 * @throws ExceptionReport
 	 */
@@ -99,26 +103,26 @@ public class OutputDataItem extends ResponseData {
 		OutputDataType output = prepareOutput(res);
 		prepareGenerator();
 		ComplexDataType complexData = null;
-		
-		
-		
+
+
+
 		try {
 			// CHECKING IF STORE IS TRUE AND THEN PROCESSING.... SOMEHOW!
-			// CREATING A COMPLEXVALUE	
-			
+			// CREATING A COMPLEXVALUE
+
 			// in case encoding is NULL -or- empty -or- UTF-8
 			// send plain text (XML or not) in response node
-			// 
+			//
 			// in case encoding is base64
 			// send base64encoded (binary) data in node
 			//
-			// in case encoding is 
-			// 
+			// in case encoding is
+			//
 			InputStream stream = null;
 			if (encoding == null || encoding.equals("") || encoding.equalsIgnoreCase(IOHandler.DEFAULT_ENCODING)){
 				stream = generator.generateStream(super.obj, mimeType, schema);
 			}
-			
+
 			// in case encoding is base64 create a new text node
 			// and parse the generator's result into it
 			else if (encoding.equalsIgnoreCase(IOHandler.ENCODING_BASE64)){
@@ -142,7 +146,7 @@ public class OutputDataItem extends ResponseData {
 				Node dataNode = document.createTextNode(text);
 				complexData.set(XmlObject.Factory.parse(dataNode));
 			}
-			
+
 		} catch(RuntimeException e) {
 			LOGGER.error(e.getMessage(), e);
 			throw new ExceptionReport("Could not create Inline Complex Data from the process result", ExceptionReport.NO_APPLICABLE_CODE, e);
@@ -156,7 +160,7 @@ public class OutputDataItem extends ResponseData {
 			LOGGER.error(e.getMessage(), e);
 			throw new ExceptionReport("Could not create Inline Base64 Complex Data from the process result", ExceptionReport.NO_APPLICABLE_CODE, e);
 		}
-		
+
 		if (complexData != null) {
 			if (schema != null) {
 				// setting the schema attribute for the output.
@@ -170,7 +174,7 @@ public class OutputDataItem extends ResponseData {
 			}
 		}
 	}
-	
+
 	public void updateResponseForLiteralData(ExecuteResponseDocument res, String dataTypeReference){
 		OutputDataType output = prepareOutput(res);
 		String processValue = BasicXMLTypeFactory.getStringRepresentation(dataTypeReference, obj);
@@ -186,12 +190,12 @@ public class OutputDataItem extends ResponseData {
 			}
 		}
 	}
-	
+
 	public void updateResponseAsReference(ExecuteResponseDocument res, String reqID, String mimeType) throws ExceptionReport {
 		prepareGenerator();
 		OutputDataType output = prepareOutput(res);
 		InputStream stream;
-		
+
 		OutputReferenceType outReference = output.addNewReference();
 		if (schema != null) {
 			outReference.setSchema(schema);
@@ -204,17 +208,17 @@ public class OutputDataItem extends ResponseData {
 		}
 		IDatabase db = DatabaseFactory.getDatabase();
 		String storeID = reqID + "" + id;
-		
+
 		try {
 			if (encoding == null || encoding.equals("") || encoding.equalsIgnoreCase(IOHandler.DEFAULT_ENCODING)){
 				stream = generator.generateStream(super.obj, mimeType, schema);
 			}
-			
+
 			// in case encoding is base64
 			else if (encoding.equalsIgnoreCase(IOHandler.ENCODING_BASE64)){
 				stream = generator.generateBase64Stream(super.obj, mimeType, schema);
 			}
-			
+
 			else {
 				throw new ExceptionReport("Unable to generate encoding " + encoding, ExceptionReport.NO_APPLICABLE_CODE);
 			}
@@ -223,46 +227,31 @@ public class OutputDataItem extends ResponseData {
 			LOGGER.error(e.getMessage(), e);
 			throw new ExceptionReport("Error while generating Complex Data out of the process result", ExceptionReport.NO_APPLICABLE_CODE, e);
 		}
-		
+
 		String storeReference = db.storeComplexValue(storeID, stream, COMPLEX_DATA_TYPE, mimeType);
 		storeReference = storeReference.replace("#", "%23");
 		outReference.setHref(storeReference);
-		// MSS:  05-02-2009 changed default output type to text/xml to be certain that the calling application doesn't 
+		// MSS:  05-02-2009 changed default output type to text/xml to be certain that the calling application doesn't
 		// serve the wrong type as it is a reference in this case.
 		this.mimeType = "text/xml";
 	}
-	
+
 	private OutputDataType prepareOutput(ExecuteResponseDocument res){
 		OutputDataType output = res.getExecuteResponse().getProcessOutputs().addNewOutput();
 		CodeType identifierCode = output.addNewIdentifier();
 		identifierCode.setStringValue(id);
 		output.setTitle(title);
-		return output;	
+		return output;
 	}
 
-	public void updateResponseForBBOXData(ExecuteResponseDocument res, IData obj) {
-		Envelope bbox = (Envelope) obj.getPayload();
+	public void updateResponseForBBOXData(ExecuteResponseDocument res, IBBOXData bbox) {
 		OutputDataType output = prepareOutput(res);
 		BoundingBoxType bboxData = output.addNewData().addNewBoundingBoxData();
-		if(bbox.getCoordinateReferenceSystem()!=null && bbox.getCoordinateReferenceSystem().getIdentifiers().size()>0){
-			bboxData.setCrs(bbox.getCoordinateReferenceSystem().getIdentifiers().iterator().next().toString());
-		}
-		double[] lowerCorner = bbox.getLowerCorner().getCoordinate();
-		List<Double> lowerCornerList = new ArrayList<Double>();
-		for(double d : lowerCorner){
-			lowerCornerList.add(d);
-		}
-		double[] upperCorner = bbox.getUpperCorner().getCoordinate();
-		List<Double> upperCornerList = new ArrayList<Double>();
-		for(double d : upperCorner){
-			upperCornerList.add(d);
-		}
-		
-		bboxData.setLowerCorner(lowerCornerList);
-		bboxData.setUpperCorner(upperCornerList);
-		
+        if (bbox.getCRS() != null) {
+            bboxData.setCrs(bbox.getCRS());
+        }
+		bboxData.setLowerCorner(Doubles.asList(bbox.getLowerCorner()));
+		bboxData.setUpperCorner(Doubles.asList(bbox.getUpperCorner()));
 		bboxData.setDimensions(BigInteger.valueOf(bbox.getDimension()));
-		
-		
 	}
 }

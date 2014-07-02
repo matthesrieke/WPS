@@ -1,25 +1,30 @@
 /**
- * ﻿Copyright (C) 2010
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2010 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
 
 package org.n52.wps.server.r.metadata;
@@ -39,6 +44,7 @@ import java.util.StringTokenizer;
 import net.opengis.wps.x100.ProcessDescriptionType;
 
 import org.n52.wps.server.ExceptionReport;
+import org.n52.wps.server.r.R_Config;
 import org.n52.wps.server.r.data.R_Resource;
 import org.n52.wps.server.r.syntax.RAnnotation;
 import org.n52.wps.server.r.syntax.RAnnotationException;
@@ -57,50 +63,58 @@ public class RAnnotationParser {
 
     private static Logger LOGGER = LoggerFactory.getLogger(RAnnotationParser.class);
 
-    public RAnnotationParser() {
-        LOGGER.info("New " + this);
+    private R_Config config;
+
+    public RAnnotationParser(R_Config config) {
+        this.config = config;
+        LOGGER.debug("New {}", this);
     }
 
     /**
      * 
      * @param script
      * @throws RAnnotationException
-     *             if script is invalid
+     *         if script is invalid
      * @throws IOException
      * @throws ExceptionReport
      */
-    public boolean validateScript(InputStream script,
-            String identifier) throws RAnnotationException, IOException, ExceptionReport
-    {
+    public boolean validateScript(InputStream script, String identifier) throws RAnnotationException,
+            IOException,
+            ExceptionReport {
         // TODO: improve this method to something more useful
 
         // try to parse annotations:
         List<RAnnotation> annotations = parseAnnotationsfromScript(script);
         // try to create process description:
-        RProcessDescriptionCreator descriptionCreator = new RProcessDescriptionCreator();
+        RProcessDescriptionCreator descriptionCreator = new RProcessDescriptionCreator(this.config);
 
         // TODO: WPS.des and WPS.res should only occur once or not at all
         try {
-            ProcessDescriptionType processType = descriptionCreator.createDescribeProcessType(annotations, identifier, new URL("http://some.valid.url/"), new URL("http://some.valid.url/"));
+            ProcessDescriptionType processType = descriptionCreator.createDescribeProcessType(annotations,
+                                                                                              identifier,
+                                                                                              new URL("http://some.valid.url/"),
+                                                                                              new URL("http://some.valid.url/"));
 
             boolean valid = processType.validate();
             if (valid == false)
-                throw new ExceptionReport("Invalid R algorithm. The process description created from the script is not valid.", ExceptionReport.NO_APPLICABLE_CODE);
+                throw new ExceptionReport("Invalid R algorithm. The process description created from the script is not valid.",
+                                          ExceptionReport.NO_APPLICABLE_CODE);
             return valid;
 
-        } catch (ExceptionReport e) {
+        }
+        catch (ExceptionReport e) {
             String message = "Invalid R algorithm. Script validation failed when executing process description creator.";
             LOGGER.error(message, e);
             throw e;
-        } catch (RAnnotationException e) {
+        }
+        catch (RAnnotationException e) {
             String message = "Invalid R algorithm. Script validation failed when executing process description creator.";
             LOGGER.error(message, e);
             throw e;
         }
     }
 
-    public List<RAnnotation> parseAnnotationsfromScript(InputStream inputScript) throws RAnnotationException
-    {
+    public List<RAnnotation> parseAnnotationsfromScript(InputStream inputScript) throws RAnnotationException {
         LOGGER.debug("Starting to parse annotations from script " + inputScript);
 
         try {
@@ -115,18 +129,21 @@ public class RAnnotationParser {
                 String line = lineReader.readLine();
                 lineCounter++;
 
-                if (line.trim().startsWith(ANNOTATION_CHARACTER) && !line.trim().startsWith(COMMENTED_ANNOTATION_CHARACTER)) {
+                if (line.trim().startsWith(ANNOTATION_CHARACTER)
+                        && !line.trim().startsWith(COMMENTED_ANNOTATION_CHARACTER)) {
                     line = line.split("#", 2)[1];
                     line = line.trim();
 
-                    LOGGER.trace("Parsing annotation line " + line);
-                    if (!isCurrentlyParsingAnnotation)
+                    if (line.isEmpty())
+                        continue;
+
+                    LOGGER.debug("Parsing annotation line '{}'", line);
+                    if ( !isCurrentlyParsingAnnotation)
                         // searches for startKey - expressions in a line
                         for (RAnnotationType anot : RAnnotationType.values()) {
                             String startKey = anot.getStartKey().getKey();
                             if (line.contains(startKey)) {
-                                if (LOGGER.isDebugEnabled())
-                                    LOGGER.debug("Parsing annotation " + startKey);
+                                LOGGER.debug("Parsing annotation of type {}", startKey);
 
                                 // start parsing an annotation, which might
                                 // spread several lines
@@ -148,43 +165,52 @@ public class RAnnotationParser {
                             }
 
                             annotationString.append(line);
-                            if (!isCurrentlyParsingAnnotation) {
+                            if ( !isCurrentlyParsingAnnotation) {
                                 RAnnotation newAnnotation = null;
                                 if (annotationType.equals(RAnnotationType.RESOURCE)) {
                                     newAnnotation = createResourceAnnotation(annotationString.toString());
-                                } else {
-                                    HashMap<RAttribute, Object> attrHash = hashAttributes(annotationType, annotationString.toString());
+                                }
+                                else {
+                                    HashMap<RAttribute, Object> attrHash = hashAttributes(annotationType,
+                                                                                          annotationString.toString());
                                     newAnnotation = new RAnnotation(annotationType, attrHash);
 
                                 }
 
                                 annotations.add(newAnnotation);
 
-                                LOGGER.debug("Done parsing annotation " + newAnnotation + " > contains: " + annotationString.toString());
+                                LOGGER.debug("Done parsing annotation {} > contains: ",
+                                             newAnnotation,
+                                             annotationString.toString());
                             }
                         }
-                    } catch (RAnnotationException e) {
-                        LOGGER.error("Invalid R script with wrong annotation in Line " + lineCounter + "\n" + e.getMessage());
+                    }
+                    catch (RAnnotationException e) {
+                        LOGGER.error("Invalid R script with wrong annotation in Line {}: {}",
+                                     lineCounter,
+                                     e.getMessage());
                     }
                 }
             }
 
-            LOGGER.debug("Finished parsing " + annotations.size() + " annotations from script " + inputScript);
-            LOGGER.trace("Annotations found:" + Arrays.deepToString(annotations.toArray()));
+            LOGGER.debug("Finished parsing {} annotations from script {}:\n\t\t{}",
+                         annotations.size(),
+                         inputScript,
+                         Arrays.deepToString(annotations.toArray()));
             return annotations;
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             LOGGER.error("Error parsing annotations.", e);
             throw new RAnnotationException("Error parsing annotations.", e);
         }
     }
 
-    private HashMap<RAttribute, Object> hashAttributes(RAnnotationType anotType,
-            String attributeString) throws RAnnotationException
-    {
+    private HashMap<RAttribute, Object> hashAttributes(RAnnotationType anotType, String attributeString) throws RAnnotationException {
 
         HashMap<RAttribute, Object> attrHash = new HashMap<RAttribute, Object>();
-        StringTokenizer attrValueTokenizer = new StringTokenizer(attributeString, RSeperator.ATTRIBUTE_SEPARATOR.getKey());
+        StringTokenizer attrValueTokenizer = new StringTokenizer(attributeString,
+                                                                 RSeperator.ATTRIBUTE_SEPARATOR.getKey());
         boolean iterableOrder = true;
         // iterates over the attribute sequence of an Annotation
         Iterator<RAttribute> attrKeyIterator = anotType.getAttributeSequence().iterator();
@@ -213,8 +239,10 @@ public class RAnnotationParser {
                 // be interpreted
                 // e.g. value1, value2, attribute9 = value9, value4 --> parser
                 // error for "value4"
-            } else if (!iterableOrder) {
-                throw new RAnnotationException("Annotation contains no valid order: " + "\"" + anotType.getStartKey().getKey() + " " + attributeString + "\"");
+            }
+            else if ( !iterableOrder) {
+                throw new RAnnotationException("Annotation contains no valid order: " + "\""
+                        + anotType.getStartKey().getKey() + " " + attributeString + "\"");
             }
 
             // Valid annotations:
@@ -227,7 +255,8 @@ public class RAnnotationParser {
             if (iterableOrder) {
                 attrHash.put(attrKeyIterator.next(), attrValue.trim());
 
-            } else {
+            }
+            else {
                 String[] keyValue = attrValue.split(RSeperator.ATTRIBUTE_VALUE_SEPARATOR.getKey());
                 RAttribute attribute = anotType.getAttribute(keyValue[0].trim());
                 String value = keyValue[1].trim();
@@ -246,23 +275,25 @@ public class RAnnotationParser {
         return attrHash;
     }
 
-    private RAnnotation createResourceAnnotation(String attributeString) throws IOException, RAnnotationException
-    {
+    private RAnnotation createResourceAnnotation(String attributeString) throws IOException, RAnnotationException {
         List<R_Resource> resources = new ArrayList<R_Resource>();
 
-        StringTokenizer attrValueTokenizer = new StringTokenizer(attributeString, RSeperator.ATTRIBUTE_SEPARATOR.getKey());
+        StringTokenizer attrValueTokenizer = new StringTokenizer(attributeString,
+                                                                 RSeperator.ATTRIBUTE_SEPARATOR.getKey());
 
         while (attrValueTokenizer.hasMoreElements()) {
             String resourceValue = attrValueTokenizer.nextToken().trim();
             R_Resource r_resource = new R_Resource(resourceValue);
             resources.add(r_resource);
 
-            LOGGER.debug("Found new resource in annotation: " + r_resource);
+            LOGGER.debug("Found new resource in annotation: {}", r_resource);
         }
 
         // add empty hasmap for now
         HashMap<RAttribute, Object> attributeHash = new HashMap<RAttribute, Object>();
-        ResourceAnnotation resourceAnnotation = new ResourceAnnotation(attributeHash, resources);
+        ResourceAnnotation resourceAnnotation = new ResourceAnnotation(attributeHash,
+                                                                       resources,
+                                                                       config.getResourceDirURL());
 
         return resourceAnnotation;
     }

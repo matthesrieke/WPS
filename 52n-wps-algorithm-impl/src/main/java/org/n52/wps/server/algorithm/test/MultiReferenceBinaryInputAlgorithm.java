@@ -1,25 +1,30 @@
 /**
- * ﻿Copyright (C) 2007
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2007 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
 package org.n52.wps.server.algorithm.test;
 
@@ -27,8 +32,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.n52.wps.algorithm.annotation.Algorithm;
 import org.n52.wps.algorithm.annotation.ComplexDataInput;
 import org.n52.wps.algorithm.annotation.ComplexDataOutput;
@@ -36,8 +39,10 @@ import org.n52.wps.algorithm.annotation.Execute;
 import org.n52.wps.io.data.GenericFileData;
 import org.n52.wps.io.data.binding.complex.GenericFileDataBinding;
 import org.n52.wps.server.AbstractAnnotatedAlgorithm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Algorithm(version = "1.1.0", title="for testing multiple inputs by reference")
+@Algorithm(version = "1.1.0", title="for testing multiple binary inputs by reference")
 public class MultiReferenceBinaryInputAlgorithm extends AbstractAnnotatedAlgorithm {
 
     private static Logger LOGGER = LoggerFactory.getLogger(MultiReferenceBinaryInputAlgorithm.class);
@@ -60,11 +65,22 @@ public class MultiReferenceBinaryInputAlgorithm extends AbstractAnnotatedAlgorit
     }
 
     @Execute
-    public void runBuffer() {
+    public void runProcess() {
     	
-    	GenericFileData gfd = data.get(0);
+    	GenericFileData gfd = null;
     	
-    	File f = gfd.getBaseFile(false);
+    	File f = null;
+    	
+    	for (GenericFileData genericFileData : data) {
+        	
+    		gfd = genericFileData;
+    		
+        	f = gfd.getBaseFile(false);
+        	
+        	if(!f.exists()){
+        		throw new RuntimeException("Input file does not exist for identifier data.");
+        	}
+		}
     	
     	try {
 			result = new GenericFileData(f, gfd.getMimeType());

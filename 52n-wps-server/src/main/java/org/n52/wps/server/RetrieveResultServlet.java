@@ -1,38 +1,45 @@
 /**
- * ﻿Copyright (C) 2007
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2007 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
-
 package org.n52.wps.server;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.util.UUID;
+
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.n52.wps.server.database.DatabaseFactory;
@@ -50,6 +57,8 @@ public class RetrieveResultServlet extends HttpServlet {
     public final static String SERVLET_PATH = "RetrieveResultServlet";
     // in future parameterize
     private final boolean indentXML = false;
+    
+    private final int uuid_length = 36;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -59,8 +68,16 @@ public class RetrieveResultServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-        // id of result to retrieve.
-        String id = request.getParameter("id");
+		// id of result to retrieve.
+		String id = request.getParameter("id");
+
+		// optional alternate name for filename (rename the file when retrieving
+		// if requested)
+		boolean altName = false;
+		String alternateFilename = request.getParameter("filename");
+		if (!StringUtils.isEmpty(alternateFilename)) {
+			altName = true;
+		}
 
         // return result as attachment (instructs browser to offer user "Save" dialog)
         String attachment = request.getParameter("attachment");
@@ -69,10 +86,14 @@ public class RetrieveResultServlet extends HttpServlet {
             errorResponse("id parameter missing", response);
         } else {
 
+        	if(!isIDValid(id)){
+        		errorResponse("id parameter not valid", response);
+        	}
+        	
             IDatabase db = DatabaseFactory.getDatabase();
             String mimeType = db.getMimeTypeForStoreResponse(id);
             long contentLength = db.getContentLengthForStoreResponse(id);
-
+            
             InputStream inputStream = null;
             OutputStream outputStream = null;
             try {
@@ -86,11 +107,15 @@ public class RetrieveResultServlet extends HttpServlet {
                     String suffix = MIMEUtil.getSuffixFromMIMEType(mimeType).toLowerCase();
 
                     // if attachment parameter unset, default to false for mime-type of 'xml' and true for everything else.
-                    boolean useAttachment = (StringUtils.isEmpty(attachment) && !"xml".equals(suffix)) || Boolean.parseBoolean(attachment);
-                    if (useAttachment) {
-                        String attachmentName = (new StringBuilder(id)).append('.').append(suffix).toString();
-                        response.addHeader("Content-Disposition", "attachment; filename=\"" + attachmentName + "\"");
-                    }
+					boolean useAttachment = (StringUtils.isEmpty(attachment) && !"xml".equals(suffix)) || Boolean.parseBoolean(attachment);
+					if (useAttachment) {
+						String attachmentName = (new StringBuilder(id)).append('.').append(suffix).toString();
+
+						if (altName) {
+							attachmentName = (new StringBuilder(alternateFilename)).append('.').append(suffix).toString();
+						}
+						response.addHeader("Content-Disposition", "attachment; filename=\"" + attachmentName + "\"");
+					}
 
                     response.setContentType(mimeType);
 
@@ -191,4 +216,45 @@ public class RetrieveResultServlet extends HttpServlet {
     public static Throwable getRootCause(Throwable t) {
         return t.getCause() == null ? t : getRootCause(t.getCause());
     }
+    
+    public boolean isIDValid(String id){    
+    	
+    	if(id.length() <= uuid_length){
+    		
+            try {
+                UUID checkUUID = UUID.fromString(id);
+                
+                if(checkUUID.toString().equals(id)){
+                	return true;
+                }else{
+                	return false;
+                }
+			} catch (Exception e) {
+            	return false;
+			}
+    		
+    	}else {
+    		
+    		String uuidPartOne = id.substring(0, uuid_length);
+    		String uuidPartTwo = id.substring(id.length() - uuid_length, id.length());
+    		
+    		return isUUIDValid(uuidPartOne) && isUUIDValid(uuidPartTwo);    		
+    	}
+    }
+    
+	public boolean isUUIDValid(String uuid) {
+
+		// the following can be used to check whether the id is a valid UUID
+		try {
+			UUID checkUUID = UUID.fromString(uuid);
+
+			if (checkUUID.toString().equals(uuid)) {
+				return true;
+			} else {
+				return false;
+			}
+		} catch (Exception e) {
+			return false;
+		}
+	}
 }

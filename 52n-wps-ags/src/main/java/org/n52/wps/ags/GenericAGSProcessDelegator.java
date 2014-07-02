@@ -1,27 +1,31 @@
 /**
- * ﻿Copyright (C) 2009
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2009 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
-
 package org.n52.wps.ags;
 
 import java.io.File;
@@ -40,10 +44,10 @@ import net.opengis.wps.x100.ProcessDescriptionType;
 
 import org.apache.commons.io.FileUtils;
 import org.n52.wps.ags.workspace.AGSWorkspace;
-import org.n52.wps.io.data.GenericFileData;
+import org.n52.wps.io.data.GenericFileDataWithGT;
 import org.n52.wps.io.data.GenericFileDataConstants;
 import org.n52.wps.io.data.IData;
-import org.n52.wps.io.data.binding.complex.GenericFileDataBinding;
+import org.n52.wps.io.data.binding.complex.GenericFileDataWithGTBinding;
 import org.n52.wps.io.data.binding.literal.LiteralBooleanBinding;
 import org.n52.wps.io.data.binding.literal.LiteralDoubleBinding;
 import org.n52.wps.io.data.binding.literal.LiteralFloatBinding;
@@ -122,7 +126,7 @@ public class GenericAGSProcessDelegator implements IAlgorithm{
 			
 			//Complex Output
 			else if(input.isSetComplexData()){
-				return GenericFileDataBinding.class;
+				return GenericFileDataWithGTBinding.class;
 			}
 		}
 		
@@ -159,7 +163,7 @@ public class GenericAGSProcessDelegator implements IAlgorithm{
 			
 			//Complex Output
 			else if(output.isSetComplexOutput()){
-				return GenericFileDataBinding.class;
+				return GenericFileDataWithGTBinding.class;
 			}
 		}
 		return null;
@@ -262,16 +266,16 @@ public class GenericAGSProcessDelegator implements IAlgorithm{
 					//GenericFileData outputFileData = new GenericFileData(this.workspace.getFileAsStream(fileName), currentParam.mimeType);
 					
 					File currentFile = new File (fileName);
-					GenericFileData outputFileData;
+					GenericFileDataWithGT outputFileData;
 					try {
 						if(currentParam.schema != null && currentParam.schema.length()>0){
 							//we have vector data. So use a shp file.
 							
-							outputFileData = new GenericFileData(currentFile, GenericFileDataConstants.MIME_TYPE_ZIPPED_SHP);
+							outputFileData = new GenericFileDataWithGT(currentFile, GenericFileDataConstants.MIME_TYPE_ZIPPED_SHP);
 						}else{
-							outputFileData = new GenericFileData(currentFile, currentParam.mimeType);
+							outputFileData = new GenericFileDataWithGT(currentFile, currentParam.mimeType);
 						}
-						result.put(currentParam.wpsOutputID, new GenericFileDataBinding(outputFileData));
+						result.put(currentParam.wpsOutputID, new GenericFileDataWithGTBinding(outputFileData));
 					} catch (FileNotFoundException e) {
 						LOGGER.error("Could not read output file: " + fileName);
 						errors.add("Could not read output file: " + fileName);
@@ -311,8 +315,8 @@ public class GenericAGSProcessDelegator implements IAlgorithm{
 		String value = null;
 		
 		//File
-		if (payload instanceof GenericFileData){
-			GenericFileData gfd = (GenericFileData)payload;
+		if (payload instanceof GenericFileDataWithGT){
+			GenericFileDataWithGT gfd = (GenericFileDataWithGT)payload;
 			value = gfd.writeData(this.workspace.getWorkspace());	
 		}
 		

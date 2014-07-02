@@ -1,27 +1,31 @@
 /**
- * ﻿Copyright (C) 2007
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2007 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
-
 package org.n52.wps.server;
 
 import java.beans.PropertyChangeEvent;
@@ -33,12 +37,11 @@ import java.util.List;
 
 import net.opengis.wps.x100.ProcessDescriptionType;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.n52.wps.PropertyDocument.Property;
 import org.n52.wps.RepositoryDocument.Repository;
 import org.n52.wps.commons.WPSConfig;
-import org.n52.wps.server.request.ExecuteRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Bastian Schaeffer, University of Muenster
@@ -65,7 +68,8 @@ public class RepositoryManager {
         WPSConfig.getInstance().addPropertyChangeListener(WPSConfig.WPSCONFIG_PROPERTY_EVENT_NAME, new PropertyChangeListener() {
             public void propertyChange(
                     final PropertyChangeEvent propertyChangeEvent) {
-                LOGGER.info(this.getClass().getName() + ": Received Property Change Event: " + propertyChangeEvent.getPropertyName());
+                                                                  LOGGER.info("Received Property Change Event: {}",
+                                                                              propertyChangeEvent.getPropertyName());
                 loadAllRepositories();
             }
         });
@@ -73,7 +77,7 @@ public class RepositoryManager {
         Double updateHours = WPSConfig.getInstance().getWPSConfig().getServer().getRepoReloadInterval();
         
         if (updateHours != 0){
-        	LOGGER.info("Setting repository update period to " + updateHours + " hours.");
+            LOGGER.info("Setting repository update period to {} hours.", updateHours);
         	updateHours = updateHours * 3600 * 1000; // make milliseconds
             long updateInterval = updateHours.longValue();
             this.updateThread = new UpdateThread(updateInterval);
@@ -85,6 +89,8 @@ public class RepositoryManager {
 
     private void loadAllRepositories(){
         repositories = new ArrayList<IAlgorithmRepository>();
+        LOGGER.debug("Loading all repositories: {} (doing a gc beforehand...)", repositories);
+
         System.gc();
 
 		Repository[] repositoryList = WPSConfig.getInstance().getRegisterdAlgorithmRepositories();
@@ -110,11 +116,10 @@ public class RepositoryManager {
 					}
 				}
 				
-				
 				repositories.add(algorithmRepository);
-				LOGGER.info("Algorithm Repository "+ repositoryClassName + " initialized");
+                LOGGER.info("Algorithm Repository {} initialized", repositoryClassName);
 			} catch (InstantiationException e) {
-				LOGGER.warn("An error occured while registering AlgorithmRepository: " + repositoryClassName);
+                LOGGER.warn("An error occured while registering AlgorithmRepository: {}", repositoryClassName);
 			} catch (IllegalAccessException e) {
 				//in case of an singleton
 //				try {
@@ -134,18 +139,28 @@ public class RepositoryManager {
 //				} catch (ClassNotFoundException e1) {
 //					LOGGER.warn("An error occured while registering AlgorithmRepository: " + repositoryClassName);
 //				}
-				LOGGER.warn("An error occured while registering AlgorithmRepository: " + repositoryClassName);
+                LOGGER.warn("An error occured while registering AlgorithmRepository: {}", repositoryClassName);
 
 			} catch (ClassNotFoundException e) {
-				LOGGER.warn("An error occured while registering AlgorithmRepository: " + repositoryClassName + ". Reason " + e.getMessage());
+                LOGGER.warn("An error occured while registering AlgorithmRepository: {}",
+                            repositoryClassName,
+                            e.getMessage());
 			} catch (IllegalArgumentException e) {
-				LOGGER.warn("An error occured while registering AlgorithmRepository: " + repositoryClassName +  ". Reason " + e.getMessage());
+                LOGGER.warn("An error occured while registering AlgorithmRepository: {}",
+                            repositoryClassName,
+                            e.getMessage());
 			} catch (SecurityException e) {
-				LOGGER.warn("An error occured while registering AlgorithmRepository: " + repositoryClassName + ". Reason " + e.getMessage());
+                LOGGER.warn("An error occured while registering AlgorithmRepository: {}",
+                            repositoryClassName,
+                            e.getMessage());
 			} catch (InvocationTargetException e) {
-				LOGGER.warn("An error occured while registering AlgorithmRepository: " + repositoryClassName + ". Reason " + e.getMessage());
+                LOGGER.warn("An error occured while registering AlgorithmRepository: {}",
+                            repositoryClassName,
+                            e.getMessage());
 			} catch (NoSuchMethodException e) {
-				LOGGER.warn("An error occured while registering AlgorithmRepository: " + repositoryClassName + ". Reason " + e.getMessage());
+                LOGGER.warn("An error occured while registering AlgorithmRepository: {}",
+                            repositoryClassName,
+                            e.getMessage());
 			}
 		}
     }
@@ -297,7 +312,8 @@ public class RepositoryManager {
         				LOGGER.info("Reloading repositories - this might take a while ...");
             			long timestamp = System.currentTimeMillis();
             			RepositoryManager.getInstance().reloadRepositories();
-            			LOGGER.info("Repositories reloaded - going to sleep. Took " + (System.currentTimeMillis()-timestamp) / 1000 + " seconds.");
+                        LOGGER.info("Repositories reloaded - going to sleep. Took {} seconds.",
+                                    (System.currentTimeMillis() - timestamp) / 1000);
         			} else {
         				firstrun = false;
         			}
@@ -320,6 +336,7 @@ public class RepositoryManager {
     }
 
 	public void shutdown() {
+        LOGGER.debug("Shutting down all repositories..");
 		for (IAlgorithmRepository repo : repositories) {
 			repo.shutdown();
 		}

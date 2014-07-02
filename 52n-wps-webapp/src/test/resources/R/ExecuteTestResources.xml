@@ -4,14 +4,29 @@
 	xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.opengis.net/wps/1.0.0
 	http://schemas.opengis.net/wps/1.0.0/wpsExecute_request.xsd">
-	<ows:Identifier>org.n52.wps.server.r.test_resources</ows:Identifier>
+	<ows:Identifier>org.n52.wps.server.r.test.resources</ows:Identifier>
 	<wps:ResponseForm>
 		<wps:ResponseDocument storeExecuteResponse="false">
 			<wps:Output asReference="false">
-				<ows:Identifier>dummyOutput1</ows:Identifier>
+				<ows:Identifier>textResourceContent</ows:Identifier>
 			</wps:Output>
 			<wps:Output asReference="false">
-				<ows:Identifier>dummyOutput2</ows:Identifier>
+				<ows:Identifier>imageResourceWidth</ows:Identifier>
+			</wps:Output>
+			<wps:Output asReference="false">
+				<ows:Identifier>directoryResourceContentSize</ows:Identifier>
+			</wps:Output>
+			<wps:Output asReference="false">
+				<ows:Identifier>subdirSize</ows:Identifier>
+			</wps:Output>
+			<wps:Output asReference="false">
+				<ows:Identifier>recursiveSubdirSize</ows:Identifier>
+			</wps:Output>
+			<wps:Output asReference="false">
+				<ows:Identifier>subdirTextContent</ows:Identifier>
+			</wps:Output>
+			<wps:Output asReference="false">
+				<ows:Identifier>subdirSubfolderTextContent</ows:Identifier>
 			</wps:Output>
 			<wps:Output>
 				<ows:Identifier>sessionInfo</ows:Identifier>

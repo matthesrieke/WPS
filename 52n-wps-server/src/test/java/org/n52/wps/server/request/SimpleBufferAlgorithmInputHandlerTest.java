@@ -1,41 +1,56 @@
 /**
- * ﻿Copyright (C) 2007
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2007 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
 package org.n52.wps.server.request;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.equalToIgnoringCase;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+
 import java.io.File;
 import java.io.IOException;
+
 import net.opengis.wps.x100.ExecuteDocument;
 import net.opengis.wps.x100.InputType;
+
 import org.apache.xmlbeans.XmlException;
 import org.geotools.feature.DefaultFeatureCollection;
-import static org.hamcrest.Matchers.*;
 import org.junit.After;
 import org.junit.AfterClass;
-import static org.junit.Assert.*;
-import org.junit.Before; 
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import org.n52.wps.io.data.IData;
 import org.n52.wps.server.ExceptionReport;
 
@@ -44,13 +59,13 @@ import org.n52.wps.server.ExceptionReport;
  * @author isuftin
  */
 public class SimpleBufferAlgorithmInputHandlerTest {
-        
+
     private static String sampleFileName = null;
     private static File sampleFile = null;
     private static ExecuteDocument execDoc = null;
     private static InputType[] inputArray = null;
     private static File projectRoot = null;
-    
+
     @BeforeClass
     public static void setupClass() throws XmlException, IOException {
         sampleFileName = "src/test/resources/SimpleBufferAlgorithm.xml";
@@ -60,7 +75,7 @@ public class SimpleBufferAlgorithmInputHandlerTest {
         execDoc = ExecuteDocument.Factory.parse(sampleFile);
         inputArray = execDoc.getExecute().getDataInputs().getInputArray();
     }
-    
+
     @AfterClass
     public static void tearDownClass() {
     }
@@ -118,14 +133,13 @@ public class SimpleBufferAlgorithmInputHandlerTest {
         assertThat(instance.getParsedInputData().isEmpty(), is(false));
         assertThat(instance.getParsedInputData().size(), equalTo(2));
         assertThat(instance.getParsedInputData().keySet().size(), equalTo(2));
-        assertThat(instance.getParsedInputData().keySet().toArray()[0].toString(), is(equalToIgnoringCase("width")));
-        assertThat(instance.getParsedInputData().keySet().toArray()[1].toString(), is(equalToIgnoringCase("data")));
+        assertThat(instance.getParsedInputData().keySet(), containsInAnyOrder("width", "data"));
         assertThat(instance.getParsedInputData().get("data").size(), equalTo(1));
         assertThat(instance.getParsedInputData().get("width").size(), equalTo(1));
-        
+
         IData width = instance.getParsedInputData().get("width").get(0);
         IData data = instance.getParsedInputData().get("data").get(0);
-        
+
         assertThat(data, is(notNullValue()));
         assertThat(data.getSupportedClass().getName(), is(equalToIgnoringCase("org.geotools.feature.FeatureCollection")));
         assertThat(data.getPayload(), is(notNullValue()));
@@ -138,9 +152,9 @@ public class SimpleBufferAlgorithmInputHandlerTest {
         assertThat(((DefaultFeatureCollection) data.getPayload()).getBounds().toString(), is(equalToIgnoringCase("ReferencedEnvelope[145.19754 : 148.27298000000002, -43.423512 : -40.852802]")));
         assertThat(((DefaultFeatureCollection) data.getPayload()).getBounds().getArea(), equalTo(7.906064362400054d));
         assertThat(((DefaultFeatureCollection) data.getPayload()).getBounds().getDimension(), equalTo(2));
-        
+
         assertThat(width, is(notNullValue()));
         assertThat(((Double)width.getPayload()), equalTo(20.0d));
-        
+
     }
 }

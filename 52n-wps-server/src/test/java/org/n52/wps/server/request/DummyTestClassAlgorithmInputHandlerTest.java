@@ -1,61 +1,77 @@
 /**
- * ﻿Copyright (C) 2007
- * by 52 North Initiative for Geospatial Open Source Software GmbH
+ * ﻿Copyright (C) 2007 - 2014 52°North Initiative for Geospatial Open Source
+ * Software GmbH
  *
- * Contact: Andreas Wytzisk
- * 52 North Initiative for Geospatial Open Source Software GmbH
- * Martin-Luther-King-Weg 24
- * 48155 Muenster, Germany
- * info@52north.org
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation.
  *
- * This program is free software; you can redistribute and/or modify it under
- * the terms of the GNU General Public License version 2 as published by the
- * Free Software Foundation.
+ * If the program is linked with libraries which are licensed under one of
+ * the following licenses, the combination of the program with the linked
+ * library is not considered a "derivative work" of the program:
  *
- * This program is distributed WITHOUT ANY WARRANTY; even without the implied
- * WARRANTY OF MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ *       • Apache License, version 2.0
+ *       • Apache Software License, version 1.0
+ *       • GNU Lesser General Public License, version 3
+ *       • Mozilla Public License, versions 1.0, 1.1 and 2.0
+ *       • Common Development and Distribution License (CDDL), version 1.0
  *
- * You should have received a copy of the GNU General Public License along with
- * this program (see gnu-gpl v2.txt). If not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA or
- * visit the Free Software Foundation web page, http://www.fsf.org.
+ * Therefore the distribution of the program linked with libraries licensed
+ * under the aforementioned licenses, is permitted by the copyright holders
+ * if the distribution is compliant with both the GNU General Public
+ * License version 2 and the aforementioned licenses.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  */
 package org.n52.wps.server.request;
 
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+
 import java.io.File;
 import java.io.IOException;
+
 import net.opengis.wps.x100.ExecuteDocument;
 import net.opengis.wps.x100.InputType;
+
 import org.apache.xmlbeans.XmlException;
-import org.geotools.geometry.jts.ReferencedEnvelope;
-import static org.hamcrest.Matchers.*;
 import org.junit.After;
 import org.junit.AfterClass;
-import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import org.n52.wps.io.data.binding.bbox.BoundingBoxData;
 import org.n52.wps.server.ExceptionReport;
+
+import com.google.common.primitives.Doubles;
 
 /**
  *
  * @author isuftin
  */
 public class DummyTestClassAlgorithmInputHandlerTest {
-        
+
     private static String sampleFileName = null;
     private static File sampleFile = null;
     private static ExecuteDocument execDoc = null;
     private static InputType[] inputArray = null;
     private static File projectRoot = null;
 
-    @BeforeClass 
+    @BeforeClass
     public static void setupClass() {
         sampleFileName = "src/test/resources/DummyTestClass.xml";
         sampleFile = new File(sampleFileName);
     }
-    
+
     @AfterClass
     public static void tearDownClass() {
     }
@@ -121,11 +137,12 @@ public class DummyTestClassAlgorithmInputHandlerTest {
         assertThat(instance.getParsedInputData().get("BBOXInputData"), is(notNullValue()));
         assertThat(instance.getParsedInputData().get("BBOXInputData").size(), equalTo(1));
         assertThat(instance.getParsedInputData().get("BBOXInputData").get(0), is(notNullValue()));
-        assertThat((ReferencedEnvelope)instance.getParsedInputData().get("BBOXInputData").get(0).getPayload(), is(notNullValue()));
-        
-        ReferencedEnvelope test = (ReferencedEnvelope)instance.getParsedInputData().get("BBOXInputData").get(0).getPayload();
-        assertThat(test.getArea(), equalTo(0.020000000000000212d));
-        assertThat(test.getLowerCorner().getDirectPosition().toString(), equalTo("DirectPosition2D[46.75, 13.05]"));
-        assertThat(test.getLowerCorner().getDimension(), equalTo(2));
+        assertThat((BoundingBoxData)instance.getParsedInputData().get("BBOXInputData").get(0).getPayload(), is(notNullValue()));
+
+        BoundingBoxData test = (BoundingBoxData)instance.getParsedInputData().get("BBOXInputData").get(0).getPayload();
+        assertThat(Doubles.asList(test.getLowerCorner()), contains(46.75, 13.05));
+        assertThat(Doubles.asList(test.getUpperCorner()), contains(46.85, 13.25));
+        assertThat(test.getCRS(), is(nullValue()));
+        assertThat(test.getDimension(), is(2));
     }
 }
